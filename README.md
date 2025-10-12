@@ -1,46 +1,105 @@
 # Mobile MediSupply
 
-Mobile MediSupply es una aplicación Android diseñada para gestionar suministros médicos de manera eficiente. Este proyecto está desarrollado en Kotlin y utiliza Jetpack Compose con principios de diseño Material 3.
+Mobile MediSupply es una aplicación Android para la gestión eficiente de suministros médicos. Desarrollada con Kotlin, Jetpack Compose y siguiendo principios de Clean Architecture.
 
 ## 🏗️ Arquitectura
 
-- **Clean Architecture** con capas bien definidas
-- **MVVM** pattern con ViewModels
-- **Jetpack Compose** para UI moderna
-- **Material Design 3** para consistencia visual
-- **Hilt** para inyección de dependencias
-- **Room** para persistencia local
-- **Retrofit** para comunicación con APIs
+El proyecto sigue los principios de **Clean Architecture** y **MVVM** organizados en las siguientes capas:
 
-## 📋 Requisitos
+### Capas Principales
+- **Presentation Layer**: UI (Jetpack Compose) + ViewModels
+- **Domain Layer**: Use Cases + Business Logic + Repository Interfaces  
+- **Data Layer**: Repository Implementations + API + Database
 
-- Android Studio Giraffe | 2022.3.1 Patch 1 o superior.
-- Gradle 8.0 o superior.
-- SDK mínimo: 21.
-- SDK objetivo: 33.
+### Estructura de Directorios
 
-## 🚀 Instalación
+```
+app/src/main/java/com/example/mobile_medisupply/
+├── core/                           # Funcionalidades compartidas
+│   ├── network/                    # Configuración de red y estados
+│   ├── database/                   # Base de datos y converters
+│   ├── utils/                      # Utilidades comunes
+│   └── di/                         # Inyección de dependencias
+├── features/                       # Organizados por funcionalidad
+│   ├── auth/                       # Autenticación y autorización
+├── navigation/                     # Navegación entre pantallas
+└── ui/                             # Componentes UI reutilizables
+    ├── theme/                      # Tema personalizado Material 3
+    ├── components/                 # Componentes compartidos
+    └── utils/                      # Utilidades de UI
+```
 
-1. Clona el repositorio:
+## 🛠️ Stack Tecnológico
+
+### Core
+- **Kotlin** - Lenguaje principal
+- **Jetpack Compose** - UI moderna y declarativa
+- **Material 3** - Sistema de diseño
+
+### Arquitectura y Patrones
+- **Clean Architecture** - Separación de responsabilidades
+- **MVVM** - Patrón de presentación
+- **Repository Pattern** - Abstracción de datos
+- **Use Cases** - Lógica de negocio encapsulada
+
+### Inyección de Dependencias
+- **Hilt** - Inyección de dependencias
+
+### Red y APIs
+- **Retrofit** - Cliente HTTP
+- **OkHttp** - Interceptores y logging
+- **Gson** - Serialización JSON
+
+### Base de Datos Local
+- **Room** - Persistencia local y cache
+- **SQLite** - Motor de base de datos
+
+### Programación Asíncrona
+- **Coroutines** - Concurrencia
+- **Flow** - Streams reactivos
+
+### Navegación
+- **Navigation Compose** - Navegación entre pantallas
+
+## 🎨 Tema Personalizado
+
+La aplicación utiliza un tema personalizado basado en Material 3 con:
+- **Esquema de colores teal/cyan** para el sector médico
+- **Tipografía optimizada** para legibilidad
+- **Componentes consistentes** en toda la app
+- **Soporte para modo oscuro**
+
+
+## 🚀 Configuración del Proyecto
+
+### Requisitos
+- **Android Studio Hedgehog | 2023.1.1** o superior
+- **Gradle 8.5** o superior
+- **SDK mínimo:** 24 (Android 7.0)
+- **SDK objetivo:** 34 (Android 14)
+- **JDK 8** o superior
+
+### Instalación
+
+1. **Clonar el repositorio:**
    ```bash
-   git clone https://github.com/Grupo8-MediSupply/Mobile-MediSupply.git
+   git clone git@github.com:Grupo8-MediSupply/Mobile-MediSupply.git
    cd Mobile-MediSupply
    ```
 
-2. Configura Git Flow:
-   ```bash
-   chmod +x scripts/setup-git-hooks.sh
-   ./scripts/setup-git-hooks.sh
+2. **Abrir en Android Studio:**
+   - File → Open → Seleccionar carpeta del proyecto
+   - Esperar sincronización de Gradle
+
+3. **Configurar API Base URL:**
+   ```kotlin
+   // En NetworkModule.kt
+   private const val BASE_URL = "https://tu-api.medisupply.com/v1/"
    ```
 
-3. Inicializa Git Flow:
-   ```bash
-   git flow init
-   ```
-
-4. Abre el proyecto en Android Studio
-
-5. Sincroniza el proyecto con Gradle
+4. **Ejecutar la aplicación:**
+   - Conectar dispositivo o usar emulador
+   - Run → Run 'app'
 
 ## 🔄 Git Flow
 
@@ -96,47 +155,52 @@ app/src/main/java/com/example/mobile_medisupply/
 ./gradlew assembleRelease
 ```
 
-## 📏 Convenciones de Código
-
-- **Commits**: [Conventional Commits](https://www.conventionalcommits.org/)
-- **Kotlin**: [Coding Conventions](https://kotlinlang.org/docs/coding-conventions.html)
-- **Android**: [Style Guide](https://developer.android.com/kotlin/style-guide)
-
 ## 🧪 Testing
 
+### Estrategia de Testing
+- **Unit Tests** - Lógica de negocio y ViewModels
+- **Integration Tests** - Repository y Use Cases  
+- **UI Tests** - Pantallas y componentes
+
+### Ejecutar Tests
 ```bash
-# Unit tests
+# Tests unitarios
 ./gradlew testDebugUnitTest
 
-# Instrumented tests
-./gradlew connectedAndroidTest
+# Tests instrumentados
+./gradlew connectedDebugAndroidTest
 
-# Test coverage
-./gradlew jacocoTestReport
+# Todos los tests
+./gradlew check
 ```
 
-## 📦 Build y Release
+## 📖 Patrones y Convenciones
 
-### Debug Build:
-```bash
-./gradlew assembleDebug
+### Naming Conventions
+- **Packages**: `snake_case`
+- **Classes**: `PascalCase`
+- **Functions/Variables**: `camelCase`
+- **Constants**: `SCREAMING_SNAKE_CASE`
+
+### Git Workflow
+- **Feature branches**: `feature/nombre-funcionalidad`
+- **Bugfix branches**: `bugfix/descripcion-bug`
+- **Hotfix branches**: `hotfix/descripcion-critica`
+
+### Commits
 ```
-
-### Release Build:
-```bash
-./gradlew assembleRelease
-```
-
-### Crear Tag de Release:
-```bash
-git tag -a v1.0.0 -m "Release version 1.0.0"
-git push origin v1.0.0
+feat: agregar pantalla de login
+fix: corregir error en cache de productos
+docs: actualizar README con arquitectura
+refactor: reorganizar estructura de archivos
 ```
 
 ## 🤝 Contribución
 
-1. Fork el proyecto
-2. Crea tu feature branch (`git flow feature start amazing-feature`)
-3. Commit tus cambios (`git commit -m 'feat: add amazing feature'`)
-4. Push a la branch (`git push origin feature/amazing-feature`)
-5. Abre un Pull Request
+1. Fork del proyecto
+2. Crear feature branch (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -m 'feat: agregar nueva funcionalidad'`)
+4. Push al branch (`git push origin feature/nueva-funcionalidad`)
+5. Crear Pull Request
+
+
