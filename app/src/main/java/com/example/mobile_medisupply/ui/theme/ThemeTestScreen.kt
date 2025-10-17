@@ -1,8 +1,5 @@
-package com.example.mobile_medisupply
+package com.example.mobile_medisupply.ui.theme
 
-import android.os.Bundle
-import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -12,26 +9,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.navigation.compose.rememberNavController
-import com.example.mobile_medisupply.navigation.AppNavHost
-import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
-
-class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        setContent {
-            MobileMediSupplyTheme(dynamicColor = false) {
-                Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
-                ) {
-                    val navController = rememberNavController()
-                    AppNavHost(navController = navController)
-                }
-            }
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -189,11 +166,11 @@ fun LazyColorGrid() {
 @Preview(showBackground = true)
 @Composable
 fun ThemeTestPreview() {
-    MobileMediSupplyTheme { ThemeTestScreen() }
+    MobileMediSupplyTheme(dynamicColor = false) { ThemeTestScreen() }
 }
 
 @Preview(showBackground = true, uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES)
 @Composable
 fun ThemeTestDarkPreview() {
-    MobileMediSupplyTheme { ThemeTestScreen() }
+    MobileMediSupplyTheme(dynamicColor = false) { ThemeTestScreen() }
 }
