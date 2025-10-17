@@ -9,6 +9,10 @@
     <string name="login_button">Iniciar sesión</string>
     <string name="forgot_password">¿Olvidaste tu contraseña?</string>
     
+    <!-- Home Screen -->
+    <string name="home_title">Bienvenido a MediSupply</string>
+    <string name="home_subtitle">Esta es la pantalla de inicio</string>
+    
     <!-- Content Descriptions -->
     <string name="cd_medisupply_logo">Logo de MediSupply</string>
     <string name="cd_show_password">Mostrar contraseña</string>
