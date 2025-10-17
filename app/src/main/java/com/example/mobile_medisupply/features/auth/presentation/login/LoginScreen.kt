@@ -34,6 +34,7 @@ import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
 fun LoginScreen(
         onLoginClick: (String, String) -> Unit = { _, _ -> },
         onForgotPasswordClick: () -> Unit = {},
+        onRegisterClick: () -> Unit = {}, // Nuevo parámetro
         modifier: Modifier = Modifier
 ) {
         var email by remember { mutableStateOf("") }
@@ -226,6 +227,11 @@ fun LoginScreen(
                                         // Enlace de recuperación de contraseña
                                         TextButton(onClick = onForgotPasswordClick) {
                                                 Text(stringResource(R.string.forgot_password))
+                                        }
+
+                                        // Enlace para registrarse
+                                        TextButton(onClick = onRegisterClick) {
+                                                Text(stringResource(R.string.no_account_yet))
                                         }
                                 }
                         }

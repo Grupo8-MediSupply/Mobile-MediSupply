@@ -7,6 +7,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.mobile_medisupply.features.auth.presentation.login.LoginScreen
+import com.example.mobile_medisupply.features.auth.presentation.register.RegisterScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 
 @Composable
@@ -20,7 +21,29 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
                         // Navegar al home en lugar de dashboard
                         navController.navigate("home") { popUpTo("login") { inclusive = true } }
                     },
-                    onForgotPasswordClick = { navController.navigate("recover") }
+                    onForgotPasswordClick = { navController.navigate("recover") },
+                    onRegisterClick = {
+                        navController.navigate("register")
+                    } // Nuevo navegación a registro
+            )
+        }
+
+        // Pantalla de Registro
+        composable("register") {
+            RegisterScreen(
+                    onRegisterClick = {
+                            companyName,
+                            taxId,
+                            institutionType,
+                            personInCharge,
+                            email,
+                            password ->
+                        // Después del registro exitoso, navegar al home
+                        navController.navigate("home") { popUpTo("login") { inclusive = true } }
+                    },
+                    onLoginClick = {
+                        navController.navigateUp() // Regresar a login
+                    }
             )
         }
 
