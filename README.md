@@ -32,9 +32,9 @@ app/src/main/java/com/example/mobile_medisupply/
 ## 🛠️ Stack Tecnológico
 
 ### Core
-- **Kotlin** - Lenguaje principal
-- **Jetpack Compose** - UI moderna y declarativa
-- **Material 3** - Sistema de diseño
+- **Kotlin 1.9.0** - Lenguaje principal
+- **Jetpack Compose 1.5.0** - UI moderna y declarativa
+- **Material 3 1.1.2** - Sistema de diseño
 
 ### Arquitectura y Patrones
 - **Clean Architecture** - Separación de responsabilidades
@@ -43,23 +43,28 @@ app/src/main/java/com/example/mobile_medisupply/
 - **Use Cases** - Lógica de negocio encapsulada
 
 ### Inyección de Dependencias
-- **Hilt** - Inyección de dependencias
+- **Hilt 2.48** - Inyección de dependencias
 
 ### Red y APIs
-- **Retrofit** - Cliente HTTP
-- **OkHttp** - Interceptores y logging
-- **Gson** - Serialización JSON
+- **Retrofit 2.9.0** - Cliente HTTP
+- **OkHttp 4.11.0** - Interceptores y logging
+- **Gson 2.10.1** - Serialización JSON
 
 ### Base de Datos Local
-- **Room** - Persistencia local y cache
+- **Room 2.6.0** - Persistencia local y cache
 - **SQLite** - Motor de base de datos
 
 ### Programación Asíncrona
-- **Coroutines** - Concurrencia
+- **Coroutines 1.7.3** - Concurrencia
 - **Flow** - Streams reactivos
 
 ### Navegación
-- **Navigation Compose** - Navegación entre pantallas
+- **Navigation Compose 2.7.5** - Navegación entre pantallas
+
+### Testing
+- **JUnit 4.13.2** - Unit testing
+- **Mockito 5.6.0** - Mocking para tests
+- **Espresso 3.5.1** - UI testing
 
 ## 🎨 Tema Personalizado
 
@@ -73,11 +78,11 @@ La aplicación utiliza un tema personalizado basado en Material 3 con:
 ## 🚀 Configuración del Proyecto
 
 ### Requisitos
-- **Android Studio Hedgehog | 2023.1.1** o superior
-- **Gradle 8.5** o superior
-- **SDK mínimo:** 24 (Android 7.0)
+- **Android Studio Narwal | 2023.2.1** o superior
+- **Gradle 8.6** o superior
+- **SDK mínimo:** 26 (Android 8.0)
 - **SDK objetivo:** 34 (Android 14)
-- **JDK 8** o superior
+- **JDK 17** (recomendado)
 
 ### Instalación
 
