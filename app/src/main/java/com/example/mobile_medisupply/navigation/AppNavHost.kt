@@ -4,32 +4,36 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.example.mobile_medisupply.features.auth.presentation.login.LoginScreen
 import com.example.mobile_medisupply.features.auth.presentation.register.RegisterScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 
 @Composable
 fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) {
-    NavHost(navController = navController, startDestination = "login", modifier = modifier) {
-
+    NavHost(
+            navController = navController,
+            startDestination = Screen.Login.route,
+            modifier = modifier
+    ) {
         // Pantalla de Login
-        composable("login") {
+        composable(Screen.Login.route) {
             LoginScreen(
                     onLoginClick = { email, password ->
-                        // Navegar al home en lugar de dashboard
-                        navController.navigate("home") { popUpTo("login") { inclusive = true } }
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     },
-                    onForgotPasswordClick = { navController.navigate("recover") },
-                    onRegisterClick = {
-                        navController.navigate("register")
-                    } // Nuevo navegación a registro
+                    onForgotPasswordClick = { navController.navigate(Screen.Recover.route) },
+                    onRegisterClick = { navController.navigate(Screen.Register.route) }
             )
         }
 
         // Pantalla de Registro
-        composable("register") {
+        composable(Screen.Register.route) {
             RegisterScreen(
                     onRegisterClick = {
                             companyName,
@@ -38,31 +42,38 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
                             personInCharge,
                             email,
                             password ->
-                        // Después del registro exitoso, navegar al home
-                        navController.navigate("home") { popUpTo("login") { inclusive = true } }
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.Login.route) { inclusive = true }
+                        }
                     },
-                    onLoginClick = {
-                        navController.navigateUp() // Regresar a login
-                    }
+                    onLoginClick = { navController.navigateUp() }
             )
         }
 
         // Pantalla de Home
-        composable("home") {
+        composable(Screen.Home.route) {
             HomeScreen(
-                    onNavigateToInventory = { navController.navigate("inventory") },
-                    onNavigateToProfile = { navController.navigate("profile") }
+                    onNavigateToInventory = { navController.navigate(Screen.Inventory.route) },
+                    onNavigateToProfile = { navController.navigate(Screen.Profile.route) }
             )
         }
 
-        // Pantalla de Dashboard (placeholder) - mantengamos por ahora
-        composable("dashboard") { Text("Dashboard - Login exitoso!") }
-
         // Pantalla de Recuperación (placeholder)
-        composable("recover") { Text("Recover Password Screen") }
+        composable(Screen.Recover.route) { Text("Recover Password Screen") }
 
-        // Placeholders para nuevas rutas
-        composable("inventory") { Text("Inventario - En desarrollo") }
-        composable("profile") { Text("Perfil - En desarrollo") }
+        // Pantalla de Inventario (placeholder)
+        composable(Screen.Inventory.route) { Text("Ordenes") }
+
+        // Pantalla de Perfil (placeholder)
+        composable(Screen.Profile.route) { Text("Clientes") }
+
+        // Ejemplo de pantalla con parámetros
+        composable(
+                route = Screen.Detail.route,
+                arguments = listOf(navArgument("itemId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
+            Text("Detalle del item $itemId")
+        }
     }
 }

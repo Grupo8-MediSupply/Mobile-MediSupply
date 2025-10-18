@@ -22,16 +22,6 @@ import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
 @Composable
 fun HomeScreen(onNavigateToInventory: () -> Unit = {}, onNavigateToProfile: () -> Unit = {}) {
     Scaffold(
-            topBar = {
-                TopAppBar(
-                        title = { Text("MediSupply") },
-                        colors =
-                                TopAppBarDefaults.topAppBarColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        titleContentColor = MaterialTheme.colorScheme.onPrimary
-                                )
-                )
-            }
     ) { paddingValues ->
         Column(
                 modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp),

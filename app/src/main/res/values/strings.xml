@@ -31,8 +31,18 @@
     <string name="home_title">Bienvenido a MediSupply</string>
     <string name="home_subtitle">Esta es la pantalla de inicio</string>
     
+    <!-- Profile & Logout -->
+    <string name="profile">Perfil</string>
+    <string name="logout">Cerrar sesión</string>
+    <string name="logout_title">Cerrar sesión</string>
+    <string name="logout_confirmation">¿Estás seguro que deseas cerrar la sesión?</string>
+    <string name="confirm">Confirmar</string>
+    <string name="cancel">Cancelar</string>
+    
     <!-- Content Descriptions -->
     <string name="cd_medisupply_logo">Logo de MediSupply</string>
     <string name="cd_show_password">Mostrar contraseña</string>
     <string name="cd_hide_password">Ocultar contraseña</string>
+    <string name="cd_profile">Icono de perfil</string>
+    <string name="cd_logout">Cerrar sesión</string>
 </resources>
