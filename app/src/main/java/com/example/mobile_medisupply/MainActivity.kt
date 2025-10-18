@@ -3,6 +3,7 @@ package com.example.mobile_medisupply
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -14,6 +15,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -71,11 +75,27 @@ fun MainApp() {
             topBar = {
                 if (showTopBar) {
                     TopAppBar(
-                            title = { Text(currentScreenTitle) },
+                            title = {
+                                Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center,
+                                        modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Image(
+                                            painter =
+                                                    painterResource(
+                                                            id = R.drawable.logo_medisupply
+                                                    ),
+                                            contentDescription =
+                                                    stringResource(R.string.cd_medisupply_logo),
+                                            modifier = Modifier.height(40.dp)
+                                    )
+                                }
+                            },
                             colors =
                                     TopAppBarDefaults.topAppBarColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            titleContentColor = MaterialTheme.colorScheme.onPrimary
+                                            containerColor = Color.Transparent,
+                                            titleContentColor = MaterialTheme.colorScheme.primary
                                     )
                     )
                 }
