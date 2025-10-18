@@ -6,31 +6,125 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Inventory
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.mobile_medisupply.navigation.AppNavHost
+import com.example.mobile_medisupply.navigation.Screen
 import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            MobileMediSupplyTheme(dynamicColor = false) {
-                Surface(
-                        modifier = Modifier.fillMaxSize(),
-                        color = MaterialTheme.colorScheme.background
-                ) {
-                    val navController = rememberNavController()
+        setContent { MobileMediSupplyTheme(dynamicColor = false) { MainApp() } }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainApp() {
+    val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
+
+    // Define las pantallas principales que mostrarán la barra de navegación
+    val showBottomBar =
+            remember(currentDestination) {
+                when (currentDestination?.route) {
+                    Screen.Home.route, Screen.Inventory.route, Screen.Profile.route -> true
+                    else -> false
+                }
+            }
+
+    // Define las pantallas que mostrarán la barra superior
+    val showTopBar =
+            remember(currentDestination) {
+                when (currentDestination?.route) {
+                    Screen.Login.route, Screen.Register.route, Screen.Recover.route -> false
+                    else -> true
+                }
+            }
+
+    // Define el título de la pantalla actual
+    val currentScreenTitle =
+            remember(currentDestination) {
+                when (currentDestination?.route) {
+                    Screen.Home.route -> "MediSupply"
+                    Screen.Inventory.route -> "Inventario"
+                    Screen.Profile.route -> "Perfil"
+                    else -> ""
+                }
+            }
+
+    Scaffold(
+            topBar = {
+                if (showTopBar) {
+                    TopAppBar(
+                            title = { Text(currentScreenTitle) },
+                            colors =
+                                    TopAppBarDefaults.topAppBarColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            titleContentColor = MaterialTheme.colorScheme.onPrimary
+                                    )
+                    )
+                }
+            },
+            bottomBar = {
+                if (showBottomBar) {
+                    NavigationBar {
+                        val items =
+                                listOf(
+                                        Screen.Home to Icons.Default.Home,
+                                        Screen.Inventory to Icons.Default.Inventory,
+                                        Screen.Profile to Icons.Default.Person
+                                )
+
+                        items.forEach { (screen, icon) ->
+                            val selected =
+                                    currentDestination?.hierarchy?.any {
+                                        it.route == screen.route
+                                    } == true
+
+                            NavigationBarItem(
+                                    icon = { Icon(icon, contentDescription = null) },
+                                    label = {
+                                        Text(screen.route.replaceFirstChar { it.uppercase() })
+                                    },
+                                    selected = selected,
+                                    onClick = {
+                                        navController.navigate(screen.route) {
+                                            // Evita múltiples copias de la misma ruta en la pila
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            // Evita recrear la pantalla si ya está seleccionada
+                                            launchSingleTop = true
+                                            // Restaura el estado al regresar
+                                            restoreState = true
+                                        }
+                                    }
+                            )
+                        }
+                    }
+                }
+            },
+            content = { padding ->
+                Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                     AppNavHost(navController = navController)
                 }
             }
-        }
-    }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
