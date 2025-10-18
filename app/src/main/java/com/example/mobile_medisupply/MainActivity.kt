@@ -8,9 +8,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.Inventory
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -60,16 +58,9 @@ fun MainApp() {
                 }
             }
 
-    // Define el título de la pantalla actual
-    val currentScreenTitle =
-            remember(currentDestination) {
-                when (currentDestination?.route) {
-                    Screen.Home.route -> "MediSupply"
-                    Screen.Inventory.route -> "Inventario"
-                    Screen.Profile.route -> "Perfil"
-                    else -> ""
-                }
-            }
+    // Estados para el menú de perfil y diálogo de logout
+    var showProfileMenu by remember { mutableStateOf(false) }
+    var showLogoutDialog by remember { mutableStateOf(false) }
 
     Scaffold(
             topBar = {
@@ -96,7 +87,39 @@ fun MainApp() {
                                     TopAppBarDefaults.topAppBarColors(
                                             containerColor = Color.Transparent,
                                             titleContentColor = MaterialTheme.colorScheme.primary
-                                    )
+                                    ),
+                            actions = {
+                                // Icono de perfil con menú desplegable
+                                Box {
+                                    IconButton(onClick = { showProfileMenu = true }) {
+                                        Icon(
+                                                Icons.Default.AccountCircle,
+                                                contentDescription = "Perfil",
+                                                tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+
+                                    // Menú desplegable
+                                    DropdownMenu(
+                                            expanded = showProfileMenu,
+                                            onDismissRequest = { showProfileMenu = false }
+                                    ) {
+                                        DropdownMenuItem(
+                                                text = { Text("Cerrar sesión") },
+                                                leadingIcon = {
+                                                    Icon(
+                                                            Icons.Default.Logout,
+                                                            contentDescription = null
+                                                    )
+                                                },
+                                                onClick = {
+                                                    showProfileMenu = false
+                                                    showLogoutDialog = true
+                                                }
+                                        )
+                                    }
+                                }
+                            }
                     )
                 }
             },
@@ -142,6 +165,36 @@ fun MainApp() {
             content = { padding ->
                 Box(modifier = Modifier.fillMaxSize().padding(padding)) {
                     AppNavHost(navController = navController)
+
+                    // Diálogo de confirmación de logout
+                    if (showLogoutDialog) {
+                        AlertDialog(
+                                onDismissRequest = { showLogoutDialog = false },
+                                title = { Text("Cerrar sesión") },
+                                text = { Text("¿Estás seguro que deseas cerrar la sesión?") },
+                                confirmButton = {
+                                    TextButton(
+                                            onClick = {
+                                                showLogoutDialog = false
+                                                // Aquí iría cualquier lógica adicional para el
+                                                // logout
+                                                navController.navigate(Screen.Login.route) {
+                                                    popUpTo(
+                                                            navController.graph
+                                                                    .findStartDestination()
+                                                                    .id
+                                                    ) { inclusive = true }
+                                                }
+                                            }
+                                    ) { Text("Confirmar") }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { showLogoutDialog = false }) {
+                                        Text("Cancelar")
+                                    }
+                                }
+                        )
+                    }
                 }
             }
     )
