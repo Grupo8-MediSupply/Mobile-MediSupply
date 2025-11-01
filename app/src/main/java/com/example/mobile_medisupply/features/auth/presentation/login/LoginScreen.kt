@@ -1,5 +1,6 @@
 package com.example.mobile_medisupply.features.auth.presentation.login
 
+import android.util.Patterns
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -34,7 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.mobile_medisupply.R
+import com.example.mobile_medisupply.features.auth.data.repository.LoginErrorType
 import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -67,9 +69,49 @@ fun LoginScreen(
     val focusManager = LocalFocusManager.current
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var isPasswordVisible by remember { mutableStateOf(false) }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    var emailError by rememberSaveable { mutableStateOf<String?>(null) }
+    var passwordError by rememberSaveable { mutableStateOf<String?>(null) }
+
+    val emailRequiredText = stringResource(R.string.login_email_required)
+    val emailInvalidText = stringResource(R.string.login_email_invalid)
+    val passwordRequiredText = stringResource(R.string.login_password_required)
+    val passwordMinLengthText = stringResource(R.string.login_password_min_length)
+
+    fun validateFields(): Boolean {
+        val trimmedEmail = email.trim()
+
+        val newEmailError =
+                when {
+                    trimmedEmail.isBlank() -> emailRequiredText
+                    !Patterns.EMAIL_ADDRESS.matcher(trimmedEmail).matches() -> emailInvalidText
+                    else -> null
+                }
+        emailError = newEmailError
+
+        val newPasswordError =
+                when {
+                    password.isBlank() -> passwordRequiredText
+                    password.length < 6 -> passwordMinLengthText
+                    else -> null
+                }
+        passwordError = newPasswordError
+
+        if (newEmailError == null && newPasswordError == null) {
+            email = trimmedEmail
+            return true
+        }
+
+        return false
+    }
+
+    fun attemptLogin() {
+        if (uiState.isLoading) return
+        if (!validateFields()) return
+        viewModel.login(email, password)
+    }
 
     LaunchedEffect(uiState.isLoggedIn) {
         if (uiState.isLoggedIn) {
@@ -78,34 +120,46 @@ fun LoginScreen(
         }
     }
 
+    val resolvedError =
+            when (uiState.errorType) {
+                LoginErrorType.INVALID_CREDENTIALS ->
+                        uiState.error ?: stringResource(R.string.login_credentials_invalid)
+                LoginErrorType.NETWORK -> stringResource(R.string.login_network_error)
+                LoginErrorType.UNKNOWN ->
+                        uiState.error ?: stringResource(R.string.login_generic_error)
+                null -> uiState.error
+            }
+
     LoginScreenContent(
             email = email,
             password = password,
             isPasswordVisible = isPasswordVisible,
             onEmailChange = {
                 email = it
+                if (emailError != null) emailError = null
                 if (uiState.error != null) viewModel.clearError()
             },
             onPasswordChange = {
                 password = it
+                if (passwordError != null) passwordError = null
                 if (uiState.error != null) viewModel.clearError()
             },
             onTogglePasswordVisibility = { isPasswordVisible = !isPasswordVisible },
             onEmailNext = { focusManager.moveFocus(FocusDirection.Down) },
             onPasswordDone = {
                 focusManager.clearFocus()
-                if (email.isNotBlank() && password.isNotBlank()) {
-                    viewModel.login(email, password)
-                }
+                attemptLogin()
             },
             onLoginClick = {
                 focusManager.clearFocus()
-                viewModel.login(email, password)
+                attemptLogin()
             },
             onForgotPasswordClick = onForgotPasswordClick,
             onRegisterClick = onRegisterClick,
             isLoading = uiState.isLoading,
-            error = uiState.error,
+            emailError = emailError,
+            passwordError = passwordError,
+            error = resolvedError,
             modifier = modifier
     )
 }
@@ -125,6 +179,8 @@ private fun LoginScreenContent(
         onForgotPasswordClick: () -> Unit,
         onRegisterClick: () -> Unit,
         isLoading: Boolean,
+        emailError: String?,
+        passwordError: String?,
         error: String?,
         modifier: Modifier = Modifier
 ) {
@@ -170,6 +226,16 @@ private fun LoginScreenContent(
                             placeholder = { Text(stringResource(R.string.login_email_placeholder)) },
                             leadingIcon = { Icon(Icons.Default.Email, contentDescription = null) },
                             singleLine = true,
+                            isError = emailError != null,
+                            supportingText = {
+                                if (!emailError.isNullOrBlank()) {
+                                    Text(
+                                            text = emailError,
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            },
                             keyboardOptions =
                                     KeyboardOptions(
                                             keyboardType = KeyboardType.Email,
@@ -185,8 +251,19 @@ private fun LoginScreenContent(
                             value = password,
                             onValueChange = onPasswordChange,
                             label = { Text(stringResource(R.string.login_password_label)) },
+                            placeholder = { Text(stringResource(R.string.login_password_placeholder)) },
                             leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
                             singleLine = true,
+                            isError = passwordError != null,
+                            supportingText = {
+                                if (!passwordError.isNullOrBlank()) {
+                                    Text(
+                                            text = passwordError,
+                                            color = MaterialTheme.colorScheme.error,
+                                            style = MaterialTheme.typography.bodySmall
+                                    )
+                                }
+                            },
                             trailingIcon = {
                                 val icon =
                                         if (isPasswordVisible) Icons.Default.Visibility
@@ -211,7 +288,12 @@ private fun LoginScreenContent(
 
                     Button(
                             onClick = onLoginClick,
-                            enabled = email.isNotBlank() && password.isNotBlank() && !isLoading,
+                            enabled =
+                                    email.isNotBlank() &&
+                                            password.isNotBlank() &&
+                                            emailError == null &&
+                                            passwordError == null &&
+                                            !isLoading,
                             modifier = Modifier.fillMaxWidth().height(48.dp),
                             shape = MaterialTheme.shapes.large
                     ) {
@@ -270,6 +352,8 @@ private fun LoginScreenPreview() {
                 onForgotPasswordClick = {},
                 onRegisterClick = {},
                 isLoading = false,
+                emailError = null,
+                passwordError = null,
                 error = null
         )
     }

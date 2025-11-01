@@ -6,6 +6,7 @@ import com.example.mobile_medisupply.features.auth.data.remote.AuthApi
 import com.example.mobile_medisupply.features.auth.data.remote.LoginRequest
 import com.example.mobile_medisupply.features.auth.domain.model.Region
 import com.example.mobile_medisupply.features.auth.domain.model.UserRole
+import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -18,15 +19,40 @@ constructor(private val authApi: AuthApi, private val sessionManager: SessionMan
         try {
             val response = authApi.login(LoginRequest(email, password))
             if (response.success) {
-                val token = response.result.access_token
+                val token =
+                        response.result?.access_token
+                                ?: throw LoginException(
+                                        type = LoginErrorType.UNKNOWN,
+                                        message = "Token de autenticación inválido."
+                                )
                 val userSession = decodeToken(token)
                 sessionManager.saveSession(userSession)
                 emit(Result.success(userSession))
             } else {
-                emit(Result.failure(Exception("Login failed")))
+                val message =
+                        response.message?.takeIf { it.isNotBlank() }
+                                ?: "Credenciales inválidas. Verifica tu usuario y contraseña."
+                emit(Result.failure(LoginException(LoginErrorType.INVALID_CREDENTIALS, message)))
             }
         } catch (e: Exception) {
-            emit(Result.failure(e))
+            val handledException =
+                    when (e) {
+                        is LoginException -> e
+                        is IOException ->
+                                LoginException(
+                                        type = LoginErrorType.NETWORK,
+                                        message =
+                                                "No pudimos conectar con el servidor. Revisa tu conexión.",
+                                        cause = e
+                                )
+                        else ->
+                                LoginException(
+                                        type = LoginErrorType.UNKNOWN,
+                                        message = "Ocurrió un error al iniciar sesión.",
+                                        cause = e
+                                )
+                    }
+            emit(Result.failure(handledException))
         }
     }
 
@@ -57,3 +83,15 @@ data class UserSession(
         val role: UserRole,
         val region: Region
 )
+
+enum class LoginErrorType {
+    INVALID_CREDENTIALS,
+    NETWORK,
+    UNKNOWN
+}
+
+class LoginException(
+        val type: LoginErrorType,
+        message: String,
+        cause: Throwable? = null
+) : Exception(message, cause)

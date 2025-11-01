@@ -3,6 +3,8 @@ package com.example.mobile_medisupply.features.auth.presentation.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.mobile_medisupply.features.auth.data.repository.AuthRepository
+import com.example.mobile_medisupply.features.auth.data.repository.LoginErrorType
+import com.example.mobile_medisupply.features.auth.data.repository.LoginException
 import com.example.mobile_medisupply.features.auth.data.repository.UserSession
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -22,7 +24,7 @@ class LoginViewModel @Inject constructor(private val authRepository: AuthReposit
         if (_uiState.value.isLoading) return
 
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
+            _uiState.update { it.copy(isLoading = true, error = null, errorType = null) }
             authRepository.login(email, password).collect { result ->
                 result.fold(
                         onSuccess = { session ->
@@ -31,14 +33,25 @@ class LoginViewModel @Inject constructor(private val authRepository: AuthReposit
                                         isLoading = false,
                                         isLoggedIn = true,
                                         userSession = session,
-                                        error = null
+                                        error = null,
+                                        errorType = null
                                 )
                             }
                         },
                         onFailure = { throwable ->
-                            val message = throwable.message ?: "Error al iniciar sesión"
+                            val (message, type) =
+                                    when (throwable) {
+                                        is LoginException ->
+                                                throwable.message to throwable.type
+                                        else -> throwable.message to LoginErrorType.UNKNOWN
+                                    }
                             _uiState.update {
-                                it.copy(isLoading = false, error = message, userSession = null)
+                                it.copy(
+                                        isLoading = false,
+                                        error = message ?: "Ocurrió un error al iniciar sesión.",
+                                        errorType = type,
+                                        userSession = null
+                                )
                             }
                         }
                 )
@@ -47,11 +60,11 @@ class LoginViewModel @Inject constructor(private val authRepository: AuthReposit
     }
 
     fun onLoginNavigated() {
-        _uiState.update { it.copy(isLoggedIn = false) }
+        _uiState.update { it.copy(isLoggedIn = false, errorType = null) }
     }
 
     fun clearError() {
-        _uiState.update { it.copy(error = null) }
+        _uiState.update { it.copy(error = null, errorType = null) }
     }
 }
 
@@ -59,5 +72,6 @@ data class LoginUiState(
         val isLoading: Boolean = false,
         val isLoggedIn: Boolean = false,
         val userSession: UserSession? = null,
-        val error: String? = null
+        val error: String? = null,
+        val errorType: LoginErrorType? = null
 )

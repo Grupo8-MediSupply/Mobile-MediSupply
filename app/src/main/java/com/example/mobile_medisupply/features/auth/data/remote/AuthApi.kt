@@ -9,6 +9,11 @@ interface AuthApi {
 
 data class LoginRequest(val email: String, val password: String)
 
-data class LoginResponse(val success: Boolean, val result: LoginResult, val timestamp: String)
+data class LoginResponse(
+        val success: Boolean,
+        val result: LoginResult? = null,
+        val message: String? = null,
+        val timestamp: String? = null
+)
 
 data class LoginResult(val access_token: String)

@@ -6,9 +6,17 @@
     <string name="login_email_label">Usuario</string>
     <string name="login_email_placeholder">ejemplo@medisupply.com</string>
     <string name="login_password_label">Contraseña</string>
+    <string name="login_password_placeholder">Ingresa tu contraseña</string>
     <string name="login_button">Iniciar sesión</string>
     <string name="forgot_password">¿Olvidaste tu contraseña?</string>
     <string name="no_account_yet">¿No tienes una cuenta? Regístrate</string>
+    <string name="login_email_required">Ingresa tu correo</string>
+    <string name="login_email_invalid">Ingresa un correo válido</string>
+    <string name="login_password_required">Ingresa tu contraseña</string>
+    <string name="login_password_min_length">La contraseña debe tener al menos 6 caracteres</string>
+    <string name="login_credentials_invalid">Credenciales inválidas. Verifica tu usuario y contraseña.</string>
+    <string name="login_generic_error">Ocurrió un error al iniciar sesión</string>
+    <string name="login_network_error">No pudimos conectar con el servidor. Revisa tu conexión.</string>
     
     <!-- Register Screen -->
     <string name="register_title">Registro</string>
