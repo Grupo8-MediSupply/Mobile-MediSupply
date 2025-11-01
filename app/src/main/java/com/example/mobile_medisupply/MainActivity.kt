@@ -185,7 +185,8 @@ fun MainApp(mainViewModel: MainViewModel) {
                     AppNavHost(
                             navController = navController,
                             canViewClients = canViewClients,
-                            onLoginSuccess = { mainViewModel.refreshSession() }
+                            onLoginSuccess = { mainViewModel.refreshSession() },
+                            session = session
                     )
 
                     // Diálogo de confirmación de logout

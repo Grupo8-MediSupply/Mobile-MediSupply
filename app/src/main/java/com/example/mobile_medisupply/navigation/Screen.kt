@@ -6,6 +6,7 @@ sealed class Screen(val route: String) {
     object Recover : Screen("recover")
     object Home : Screen("visitas")
     object Inventory : Screen("ordenes")
+    object CreateOrder : Screen("ordenes/nueva")
     object Clients : Screen("clientes")
     object ClientDetail : Screen("clientes/detail/{clientId}") {
         private const val PARAM = "clientId"

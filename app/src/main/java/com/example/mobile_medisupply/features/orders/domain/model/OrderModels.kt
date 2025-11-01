@@ -13,3 +13,24 @@ data class OrderSummary(
         val status: OrderStatus,
         val createdAt: String
 )
+
+data class ProductCatalogItem(
+        val id: String,
+        val name: String,
+        val category: String,
+        val description: String,
+        val availability: List<ProductAvailability>
+)
+
+data class ProductAvailability(
+        val warehouseId: String,
+        val warehouseName: String,
+        val lots: List<ProductLot>
+)
+
+data class ProductLot(
+        val lotId: String,
+        val lotCode: String,
+        val expiresAt: String,
+        val availableUnits: Int
+)

@@ -16,12 +16,15 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.mobile_medisupply.features.auth.data.repository.UserSession
+import com.example.mobile_medisupply.features.auth.domain.model.UserRole
 import com.example.mobile_medisupply.features.auth.presentation.login.LoginScreen
 import com.example.mobile_medisupply.features.auth.presentation.register.RegisterScreen
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
 import com.example.mobile_medisupply.features.clients.presentation.ClientDetailScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
+import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
 
 @Composable
@@ -29,6 +32,7 @@ fun AppNavHost(
         navController: NavHostController,
         canViewClients: Boolean,
         onLoginSuccess: () -> Unit,
+        session: UserSession?,
         modifier: Modifier = Modifier
 ) {
     NavHost(
@@ -80,7 +84,18 @@ fun AppNavHost(
         composable(Screen.Recover.route) { Text("Recover Password Screen") }
 
         // Pantalla de Órdenes
-        composable(Screen.Inventory.route) { OrdersScreen() }
+        composable(Screen.Inventory.route) {
+            OrdersScreen(onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) })
+        }
+
+        composable(Screen.CreateOrder.route) {
+            CreateOrderScreen(
+                    userRole = session?.role ?: UserRole.VENDEDOR,
+                    sessionClientId = session?.userId,
+                    onBackClick = { navController.navigateUp() },
+                    onOrderSubmit = { navController.navigateUp() }
+            )
+        }
 
         // Pantalla de Clientes
         composable(Screen.Clients.route) {
