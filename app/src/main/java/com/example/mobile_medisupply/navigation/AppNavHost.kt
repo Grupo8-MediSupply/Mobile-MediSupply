@@ -22,6 +22,7 @@ import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvi
 import com.example.mobile_medisupply.features.clients.presentation.ClientDetailScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
+import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
 
 @Composable
 fun AppNavHost(
@@ -78,8 +79,8 @@ fun AppNavHost(
         // Pantalla de Recuperación (placeholder)
         composable(Screen.Recover.route) { Text("Recover Password Screen") }
 
-        // Pantalla de Inventario (placeholder)
-        composable(Screen.Inventory.route) { Text("Ordenes") }
+        // Pantalla de Órdenes
+        composable(Screen.Inventory.route) { OrdersScreen() }
 
         // Pantalla de Clientes
         composable(Screen.Clients.route) {
