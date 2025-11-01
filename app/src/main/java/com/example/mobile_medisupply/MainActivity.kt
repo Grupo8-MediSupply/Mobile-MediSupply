@@ -3,6 +3,7 @@ package com.example.mobile_medisupply
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.viewModels
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -15,10 +16,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.mobile_medisupply.features.auth.domain.model.UserRole
 import com.example.mobile_medisupply.navigation.AppNavHost
 import com.example.mobile_medisupply.navigation.Screen
 import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
@@ -26,27 +29,41 @@ import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private val mainViewModel: MainViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { MobileMediSupplyTheme(dynamicColor = false) { MainApp() } }
+        setContent {
+            MobileMediSupplyTheme(dynamicColor = false) { MainApp(mainViewModel = mainViewModel) }
+        }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainApp() {
+fun MainApp(mainViewModel: MainViewModel) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
-
-    // Define las pantallas principales que mostrarán la barra de navegación
-    val showBottomBar =
-            remember(currentDestination) {
-                when (currentDestination?.route) {
-                    Screen.Home.route, Screen.Inventory.route, Screen.Profile.route -> true
+    val session by mainViewModel.session.collectAsStateWithLifecycle()
+    val canViewClients =
+            remember(session) {
+                when (session?.role) {
+                    UserRole.ADMIN, UserRole.VENDEDOR -> true
                     else -> false
                 }
             }
+
+    // Define las pantallas principales que mostrarán la barra de navegación
+    val bottomBarRoutes =
+            remember(canViewClients) {
+                buildSet {
+                    add(Screen.Home.route)
+                    add(Screen.Inventory.route)
+                    if (canViewClients) add(Screen.Clients.route)
+                }
+            }
+    val showBottomBar = currentDestination?.route in bottomBarRoutes
 
     // Define las pantallas que mostrarán la barra superior
     val showTopBar =
@@ -126,11 +143,13 @@ fun MainApp() {
                 if (showBottomBar) {
                     NavigationBar {
                         val items =
-                                listOf(
-                                        Screen.Home to Icons.Default.Home,
-                                        Screen.Inventory to Icons.Default.Inventory,
-                                        Screen.Profile to Icons.Default.Person
-                                )
+                                buildList {
+                                    add(Screen.Home to Icons.Default.Home)
+                                    add(Screen.Inventory to Icons.Default.Inventory)
+                                    if (canViewClients) {
+                                        add(Screen.Clients to Icons.Default.Person)
+                                    }
+                                }
 
                         items.forEach { (screen, icon) ->
                             val selected =
@@ -163,7 +182,11 @@ fun MainApp() {
             },
             content = { padding ->
                 Box(modifier = Modifier.fillMaxSize().padding(padding)) {
-                    AppNavHost(navController = navController)
+                    AppNavHost(
+                            navController = navController,
+                            canViewClients = canViewClients,
+                            onLoginSuccess = { mainViewModel.refreshSession() }
+                    )
 
                     // Diálogo de confirmación de logout
                     if (showLogoutDialog) {
@@ -175,8 +198,7 @@ fun MainApp() {
                                     TextButton(
                                             onClick = {
                                                 showLogoutDialog = false
-                                                // Aquí iría cualquier lógica adicional para el
-                                                // logout
+                                                mainViewModel.clearSession()
                                                 navController.navigate(Screen.Login.route) {
                                                     popUpTo(
                                                             navController.graph

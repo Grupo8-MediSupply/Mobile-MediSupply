@@ -20,7 +20,7 @@ import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(onNavigateToInventory: () -> Unit = {}, onNavigateToProfile: () -> Unit = {}) {
+fun HomeScreen(onNavigateToInventory: () -> Unit = {}, onNavigateToClients: () -> Unit = {}) {
     Scaffold(
     ) { paddingValues ->
         Column(
