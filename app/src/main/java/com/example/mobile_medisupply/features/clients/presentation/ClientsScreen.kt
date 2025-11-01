@@ -18,7 +18,7 @@ import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -29,30 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
+import com.example.mobile_medisupply.features.clients.domain.model.ClientSummary
 import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
-
-data class ClientSummary(
-        val name: String,
-        val contact: String,
-        val location: String
-)
-
-private val sampleClients =
-        listOf(
-                ClientSummary("Clínica San Rafael", "Laura Gómez", "Ciudad de México"),
-                ClientSummary("Hospital Vida Plena", "Carlos Martínez", "Guadalajara"),
-                ClientSummary("Centro Médico Los Álamos", "Ana Torres", "Bogotá"),
-                ClientSummary("Salud Integral Norte", "Ricardo Pérez", "Medellín"),
-                ClientSummary("Hospital Ángeles del Valle", "María Sánchez", "Monterrey"),
-                ClientSummary("Clínica Santa Lucía", "Javier López", "Querétaro"),
-                ClientSummary("Centro Médico Las Lomas", "Paula Hernández", "Puebla"),
-                ClientSummary("Hospital Buen Vivir", "Andrés Silva", "Cali"),
-                ClientSummary("Clínica Esperanza Azul", "Sofía Díaz", "Toluca")
-        )
 
 @Composable
 fun ClientsScreen(
-        clients: List<ClientSummary> = sampleClients,
+        clients: List<ClientSummary> = ClientRepositoryProvider.repository.getClients(),
         onClientSelected: (ClientSummary) -> Unit = {}
 ) {
     Surface(
@@ -86,10 +69,10 @@ fun ClientsScreen(
                         modifier = Modifier.fillMaxSize(),
                         verticalArrangement = Arrangement.spacedBy(0.dp)
                 ) {
-                    items(clients, key = { it.name }) { client ->
+                    items(clients, key = { it.id }) { client ->
                         ClientRow(client = client, onClick = { onClientSelected(client) })
 
-                        Divider(
+                        HorizontalDivider(
                                 color = MaterialTheme.colorScheme.surfaceVariant,
                                 thickness = 1.dp,
                                 modifier = Modifier.padding(horizontal = 16.dp)
