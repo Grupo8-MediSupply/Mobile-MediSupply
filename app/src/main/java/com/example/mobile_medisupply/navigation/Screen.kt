@@ -6,10 +6,9 @@ sealed class Screen(val route: String) {
     object Recover : Screen("recover")
     object Home : Screen("visitas")
     object Inventory : Screen("ordenes")
-    object Profile : Screen("clientes")
-
-    // Para pantallas con parámetros
-    object Detail : Screen("detail/{itemId}") {
-        fun createRoute(itemId: String) = "detail/$itemId"
+    object Clients : Screen("clientes")
+    object ClientDetail : Screen("clientes/detail/{clientId}") {
+        private const val PARAM = "clientId"
+        fun createRoute(clientId: String) = "clientes/detail/$clientId"
     }
 }
