@@ -22,11 +22,14 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    fun provideLoggingInterceptor(): HttpLoggingInterceptor =
+            HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
+
+    @Provides
+    @Singleton
+    fun provideOkHttpClient(loggingInterceptor: HttpLoggingInterceptor): OkHttpClient {
         return OkHttpClient.Builder()
-                .addInterceptor(
-                        HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY }
-                )
+                .addInterceptor(loggingInterceptor)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build()

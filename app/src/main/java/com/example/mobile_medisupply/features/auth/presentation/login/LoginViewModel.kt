@@ -8,6 +8,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -15,27 +16,42 @@ import kotlinx.coroutines.launch
 class LoginViewModel @Inject constructor(private val authRepository: AuthRepository) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
-    val uiState: StateFlow<LoginUiState> = _uiState
+    val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
     fun login(email: String, password: String) {
+        if (_uiState.value.isLoading) return
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-
             authRepository.login(email, password).collect { result ->
                 result.fold(
                         onSuccess = { session ->
                             _uiState.update {
-                                it.copy(isLoading = false, isLoggedIn = true, userSession = session)
+                                it.copy(
+                                        isLoading = false,
+                                        isLoggedIn = true,
+                                        userSession = session,
+                                        error = null
+                                )
                             }
                         },
-                        onFailure = { exception ->
+                        onFailure = { throwable ->
+                            val message = throwable.message ?: "Error al iniciar sesión"
                             _uiState.update {
-                                it.copy(isLoading = false, error = exception.message)
+                                it.copy(isLoading = false, error = message, userSession = null)
                             }
                         }
                 )
             }
         }
+    }
+
+    fun onLoginNavigated() {
+        _uiState.update { it.copy(isLoggedIn = false) }
+    }
+
+    fun clearError() {
+        _uiState.update { it.copy(error = null) }
     }
 }
 

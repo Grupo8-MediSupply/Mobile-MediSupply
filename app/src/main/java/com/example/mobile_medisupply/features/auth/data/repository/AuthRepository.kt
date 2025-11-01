@@ -30,8 +30,13 @@ constructor(private val authApi: AuthApi, private val sessionManager: SessionMan
         }
     }
 
+    fun getSession(): UserSession? = sessionManager.getSession()
+
+    fun clearSession() = sessionManager.clearSession()
+
     private fun decodeToken(token: String): UserSession {
         val parts = token.split(".")
+        require(parts.size >= 2) { "Invalid token format" }
         val payload = String(Base64.decode(parts[1], Base64.DEFAULT))
         val json = JSONObject(payload)
 

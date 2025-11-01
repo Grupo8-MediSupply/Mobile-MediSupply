@@ -7,9 +7,4 @@ sealed class Screen(val route: String) {
     object Home : Screen("visitas")
     object Inventory : Screen("ordenes")
     object Profile : Screen("clientes")
-
-    // Para pantallas con parámetros
-    object Detail : Screen("detail/{itemId}") {
-        fun createRoute(itemId: String) = "detail/$itemId"
-    }
 }

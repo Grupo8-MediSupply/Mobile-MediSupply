@@ -4,10 +4,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
-import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.navArgument
 import com.example.mobile_medisupply.features.auth.presentation.login.LoginScreen
 import com.example.mobile_medisupply.features.auth.presentation.register.RegisterScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
@@ -22,7 +20,7 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
         // Pantalla de Login
         composable(Screen.Login.route) {
             LoginScreen(
-                    onLoginClick = { email, password ->
+                    onLoginSuccess = {
                         navController.navigate(Screen.Home.route) {
                             popUpTo(Screen.Login.route) { inclusive = true }
                         }
@@ -67,13 +65,5 @@ fun AppNavHost(navController: NavHostController, modifier: Modifier = Modifier) 
         // Pantalla de Perfil (placeholder)
         composable(Screen.Profile.route) { Text("Clientes") }
 
-        // Ejemplo de pantalla con parámetros
-        composable(
-                route = Screen.Detail.route,
-                arguments = listOf(navArgument("itemId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val itemId = backStackEntry.arguments?.getString("itemId") ?: ""
-            Text("Detalle del item $itemId")
-        }
     }
 }
