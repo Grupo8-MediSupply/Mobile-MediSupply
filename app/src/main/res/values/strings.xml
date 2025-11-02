@@ -57,6 +57,40 @@
     <string name="create_visit_select_client_cd">Seleccionar cliente</string>
     <string name="create_visit_empty_clients">No hay clientes disponibles para agendar.</string>
     <string name="action_ok">OK</string>
+    <string name="back">Atrás</string>
+    
+    <!-- Client Visits -->
+    <string name="client_visits_header">Visitas</string>
+    <string name="client_visits_empty">No se registran visitas para este cliente.</string>
+    <string name="client_visit_schedule_label">Programada - %1$s</string>
+    <string name="client_visit_status_programmed">Programada</string>
+    <string name="client_visit_status_in_progress">En curso</string>
+    <string name="client_visit_status_completed">Finalizada</string>
+    
+    <!-- Visit Detail Screen -->
+    <string name="visit_detail_status_date">%1$s - %2$s</string>
+    <string name="visit_detail_comments">Comentarios</string>
+    <string name="visit_detail_comments_placeholder">Agrega notas relevantes de la visita</string>
+    <string name="visit_detail_video_section">Seguimiento en video</string>
+    <string name="visit_detail_attach_video">Adjuntar video</string>
+    <string name="visit_detail_attach_video_cd">Adjuntar video</string>
+    <string name="visit_detail_no_video_selected">No se ha adjuntado un video.</string>
+    <string name="visit_detail_save">Guardar</string>
+    <string name="visit_detail_info_title">Detalle de la visita</string>
+    <string name="visit_detail_info_location">Ubicación</string>
+    <string name="visit_detail_info_status">Estado</string>
+    <string name="visit_detail_info_date">Fecha</string>
+    <string name="visit_detail_video_meta">%1$s · %2$s</string>
+    <string name="visit_detail_remove_video_cd">Eliminar video adjunto</string>
+    <string name="visit_detail_attach_options_help">Selecciona cómo deseas adjuntar el video.</string>
+    <string name="visit_detail_record_video">Grabar video</string>
+    <string name="visit_detail_pick_gallery">Seleccionar desde la galería</string>
+    <string name="visit_detail_video_capture_error">Error en la carga. Verifique su conexión o reduzca el tamaño del archivo e intente de nuevo.</string>
+    <string name="visit_detail_video_unknown_size">No pudimos verificar el tamaño del video. Intenta nuevamente.</string>
+    <string name="visit_detail_video_size_error">El video excede el tamaño máximo de 30MB.</string>
+    <string name="visit_detail_video_duration_error">No fue posible leer la duración del video. Intenta nuevamente.</string>
+    <string name="visit_detail_video_duration_limit">El video supera el límite de 60 segundos.</string>
+    <string name="visit_detail_video_default_name">Video de visita</string>
     <!-- Profile & Logout -->
     <string name="profile">Perfil</string>
     <string name="logout">Cerrar sesión</string>

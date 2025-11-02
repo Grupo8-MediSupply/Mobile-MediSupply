@@ -30,6 +30,7 @@ import com.example.mobile_medisupply.features.auth.presentation.register.Registe
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
 import com.example.mobile_medisupply.features.clients.presentation.ClientDetailScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
+import com.example.mobile_medisupply.features.clients.presentation.VisitDetailScreen
 import com.example.mobile_medisupply.features.home.presentation.CreateVisitScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
@@ -281,12 +282,70 @@ fun AppNavHost(
                 if (detail != null) {
                     ClientDetailScreen(
                             clientDetail = detail,
-                            onBackClick = { navController.navigateUp() }
+                            onBackClick = { navController.navigateUp() },
+                            onVisitSelected = { visit ->
+                                navController.navigate(
+                                        Screen.VisitDetail.createRoute(detail.id, visit.id)
+                                )
+                            }
                     )
                 } else {
                     Surface {
                         Text(
                                 text = "No encontramos la información del cliente.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                modifier =
+                                        Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                                .wrapContentSize(Alignment.Center)
+                        )
+                    }
+                }
+            }
+        }
+        composable(
+                route = Screen.VisitDetail.route,
+                arguments =
+                        listOf(
+                                navArgument("clientId") { type = NavType.StringType },
+                                navArgument("visitId") { type = NavType.StringType }
+                        )
+        ) { backStackEntry ->
+            if (!canViewClients) {
+                Surface {
+                    Text(
+                            text = "No tienes permisos para ver esta sección.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier =
+                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                            .wrapContentSize(Alignment.Center)
+                    )
+                }
+            } else {
+                val clientId = backStackEntry.arguments?.getString("clientId")
+                val visitId = backStackEntry.arguments?.getString("visitId")
+                val clientDetail =
+                        clientId?.let { ClientRepositoryProvider.repository.getClientDetail(it) }
+                val visitDetail =
+                        if (clientId != null && visitId != null) {
+                            ClientRepositoryProvider.repository.getClientVisitDetail(
+                                    clientId,
+                                    visitId
+                            )
+                        } else null
+                if (clientDetail != null && visitDetail != null) {
+                    VisitDetailScreen(
+                            clientName = clientDetail.name,
+                            visitDetail = visitDetail,
+                            onBackClick = { navController.navigateUp() },
+                            onSaveClick = { _, _ -> navController.navigateUp() }
+                    )
+                } else {
+                    Surface {
+                        Text(
+                                text = "No encontramos la información de la visita.",
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center,
                                 modifier =
