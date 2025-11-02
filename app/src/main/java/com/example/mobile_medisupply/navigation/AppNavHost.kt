@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -41,6 +42,7 @@ import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
 fun AppNavHost(
         navController: NavHostController,
         canViewClients: Boolean,
+        canViewVisits: Boolean,
         onLoginSuccess: () -> Unit,
         session: UserSession?,
         config: AppConfig?,
@@ -85,12 +87,41 @@ fun AppNavHost(
             )
         }
 
-        // Pantalla de Home
+        // Pantalla de Home (Visitas)
         composable(Screen.Home.route) {
-            HomeScreen(
-                    onNavigateToInventory = { navController.navigate(Screen.Inventory.route) },
-                    onNavigateToClients = { navController.navigate(Screen.Clients.route) }
-            )
+            if (canViewVisits) {
+                HomeScreen(
+                        onScheduleVisitClick = {
+                            if (canViewClients) {
+                                navController.navigate(Screen.Clients.route)
+                            }
+                        },
+                        onVisitClick = { visit ->
+                            if (canViewClients) {
+                                navController.navigate(
+                                        Screen.ClientDetail.createRoute(visit.clientId)
+                                )
+                            }
+                        }
+                )
+            } else {
+                Surface {
+                    Text(
+                            text = "No tienes permisos para ver esta sección.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier =
+                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                            .wrapContentSize(Alignment.Center)
+                    )
+                }
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.Inventory.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                }
+            }
         }
 
         // Pantalla de Recuperación (placeholder)

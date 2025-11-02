@@ -35,9 +35,13 @@
     <string name="register_button">Registrarse</string>
     <string name="already_have_account">¿Ya tienes una cuenta? Inicia sesión</string>
     
-    <!-- Home Screen -->
-    <string name="home_title">Bienvenido a MediSupply</string>
-    <string name="home_subtitle">Esta es la pantalla de inicio</string>
+    <!-- Scheduled Visits Screen -->
+    <string name="scheduled_visits_title">Visitas Programadas</string>
+    <string name="scheduled_visits_subtitle">Gestiona tu agenda con los clientes</string>
+    <string name="schedule_visit_button">Agendar visita</string>
+    <string name="scheduled_visit_date">Programada - %1$s</string>
+    <string name="scheduled_visits_empty_title">No hay visitas programadas</string>
+    <string name="scheduled_visits_empty_subtitle">Cuando programes visitas, las verás listadas aquí.</string>
     
     <!-- Profile & Logout -->
     <string name="profile">Perfil</string>
