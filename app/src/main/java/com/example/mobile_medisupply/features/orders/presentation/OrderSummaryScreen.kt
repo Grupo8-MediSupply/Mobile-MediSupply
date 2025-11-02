@@ -40,6 +40,7 @@ fun OrderSummaryScreen(
         status: String,
         totalAmountFormatted: String,
         items: List<OrderSummaryItem>,
+        currencyCode: String? = null,
         onBackClick: () -> Unit,
         onProductClick: (OrderSummaryItem) -> Unit = {}
 ) {
@@ -71,7 +72,11 @@ fun OrderSummaryScreen(
                 }
 
                 items(items, key = { it.productId }) { item ->
-                    OrderItemRow(item = item, onProductClick = onProductClick)
+                    OrderItemRow(
+                            item = item,
+                            displayCurrency = currencyCode ?: item.currency,
+                            onProductClick = onProductClick
+                    )
                     HorizontalDivider(color = MaterialTheme.colorScheme.surfaceVariant)
                 }
             }
@@ -146,8 +151,12 @@ private fun TotalCard(totalAmountFormatted: String, status: String) {
 }
 
 @Composable
-private fun OrderItemRow(item: OrderSummaryItem, onProductClick: (OrderSummaryItem) -> Unit) {
-    val lineTotalFormatted = formatCurrency(item.currency, item.lineTotal)
+private fun OrderItemRow(
+        item: OrderSummaryItem,
+        displayCurrency: String,
+        onProductClick: (OrderSummaryItem) -> Unit
+) {
+    val lineTotalFormatted = formatCurrency(displayCurrency, item.lineTotal)
     Row(
             modifier =
                     Modifier.fillMaxWidth()

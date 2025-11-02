@@ -23,6 +23,7 @@ import java.util.Currency
 import java.util.Locale
 import com.example.mobile_medisupply.features.auth.data.repository.UserSession
 import com.example.mobile_medisupply.features.auth.domain.model.UserRole
+import com.example.mobile_medisupply.features.config.domain.model.AppConfig
 import com.example.mobile_medisupply.features.auth.presentation.login.LoginScreen
 import com.example.mobile_medisupply.features.auth.presentation.register.RegisterScreen
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
@@ -42,6 +43,7 @@ fun AppNavHost(
         canViewClients: Boolean,
         onLoginSuccess: () -> Unit,
         session: UserSession?,
+        config: AppConfig?,
         modifier: Modifier = Modifier
 ) {
     val orderSelections = remember { mutableStateMapOf<String, Int>() }
@@ -170,6 +172,7 @@ fun AppNavHost(
                     totalAmountFormatted =
                             if (summaryItems.isEmpty()) "-" else formatCurrency(currencyCode, totalAmount),
                     items = summaryItems,
+                    currencyCode = config?.country?.currencyCode ?: currencyCode,
                     onBackClick = { navController.navigateUp() }
             )
         }

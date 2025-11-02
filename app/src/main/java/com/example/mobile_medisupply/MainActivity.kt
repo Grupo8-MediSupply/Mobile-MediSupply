@@ -46,6 +46,7 @@ fun MainApp(mainViewModel: MainViewModel) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
     val session by mainViewModel.session.collectAsStateWithLifecycle()
+    val config by mainViewModel.config.collectAsStateWithLifecycle()
     val canViewClients =
             remember(session) {
                 when (session?.role) {
@@ -185,8 +186,12 @@ fun MainApp(mainViewModel: MainViewModel) {
                     AppNavHost(
                             navController = navController,
                             canViewClients = canViewClients,
-                            onLoginSuccess = { mainViewModel.refreshSession() },
-                            session = session
+                            onLoginSuccess = {
+                                mainViewModel.refreshSession()
+                                mainViewModel.refreshConfig()
+                            },
+                            session = session,
+                            config = config
                     )
 
                     // Diálogo de confirmación de logout
