@@ -30,6 +30,7 @@ import com.example.mobile_medisupply.features.auth.presentation.register.Registe
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
 import com.example.mobile_medisupply.features.clients.presentation.ClientDetailScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
+import com.example.mobile_medisupply.features.home.presentation.CreateVisitScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
 import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
@@ -91,11 +92,7 @@ fun AppNavHost(
         composable(Screen.Home.route) {
             if (canViewVisits) {
                 HomeScreen(
-                        onScheduleVisitClick = {
-                            if (canViewClients) {
-                                navController.navigate(Screen.Clients.route)
-                            }
-                        },
+                        onScheduleVisitClick = { navController.navigate(Screen.CreateVisit.route) },
                         onVisitClick = { visit ->
                             if (canViewClients) {
                                 navController.navigate(
@@ -126,6 +123,36 @@ fun AppNavHost(
 
         // Pantalla de Recuperación (placeholder)
         composable(Screen.Recover.route) { Text("Recover Password Screen") }
+
+        // Pantalla de Crear Visita
+        composable(Screen.CreateVisit.route) {
+            if (canViewVisits) {
+                CreateVisitScreen(
+                        clients = ClientRepositoryProvider.repository.getClients(),
+                        onBackClick = { navController.navigateUp() },
+                        onSubmit = {
+                            navController.popBackStack()
+                        }
+                )
+            } else {
+                Surface {
+                    Text(
+                            text = "No tienes permisos para ver esta sección.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier =
+                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                            .wrapContentSize(Alignment.Center)
+                    )
+                }
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.Inventory.route) {
+                        popUpTo(Screen.CreateVisit.route) { inclusive = true }
+                    }
+                }
+            }
+        }
 
         // Pantalla de Órdenes
         composable(Screen.Inventory.route) {

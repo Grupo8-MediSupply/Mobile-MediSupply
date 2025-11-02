@@ -43,6 +43,20 @@
     <string name="scheduled_visits_empty_title">No hay visitas programadas</string>
     <string name="scheduled_visits_empty_subtitle">Cuando programes visitas, las verás listadas aquí.</string>
     
+    <!-- Create Visit Screen -->
+    <string name="create_visit_title">Nueva visita</string>
+    <string name="create_visit_subtitle">Selecciona una fecha</string>
+    <string name="create_visit_card_title">Agendar</string>
+    <string name="create_visit_client_label">Cliente</string>
+    <string name="create_visit_client_placeholder">Selecciona un cliente</string>
+    <string name="create_visit_address_label">Dirección</string>
+    <string name="create_visit_address_placeholder">Ingresa la dirección</string>
+    <string name="create_visit_date_label">Fecha</string>
+    <string name="create_visit_date_placeholder">mm/dd/yyyy</string>
+    <string name="create_visit_pick_date_cd">Seleccionar fecha de visita</string>
+    <string name="create_visit_select_client_cd">Seleccionar cliente</string>
+    <string name="create_visit_empty_clients">No hay clientes disponibles para agendar.</string>
+    <string name="action_ok">OK</string>
     <!-- Profile & Logout -->
     <string name="profile">Perfil</string>
     <string name="logout">Cerrar sesión</string>
