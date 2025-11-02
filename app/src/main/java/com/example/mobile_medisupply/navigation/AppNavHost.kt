@@ -18,6 +18,9 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import java.text.NumberFormat
+import java.util.Currency
+import java.util.Locale
 import com.example.mobile_medisupply.features.auth.data.repository.UserSession
 import com.example.mobile_medisupply.features.auth.domain.model.UserRole
 import com.example.mobile_medisupply.features.auth.presentation.login.LoginScreen
@@ -27,7 +30,9 @@ import com.example.mobile_medisupply.features.clients.presentation.ClientDetailS
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
+import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
 import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScreen
+import com.example.mobile_medisupply.features.orders.presentation.OrderSummaryScreen
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
 
@@ -100,7 +105,9 @@ fun AppNavHost(
                     sessionClientId = session?.userId,
                     selections = orderSelections,
                     onBackClick = { navController.navigateUp() },
-                    onOrderSubmit = { navController.navigateUp() },
+                    onOrderSubmit = {
+                        navController.navigate(Screen.OrderSummary.route)
+                    },
                     onProductDetail = { product ->
                         navController.navigate(Screen.ProductDetail.createRoute(product.id))
                     }
@@ -139,6 +146,32 @@ fun AppNavHost(
                         }
                 )
             }
+        }
+
+        composable(Screen.OrderSummary.route) {
+            val summaryItems =
+                    orderSelections.mapNotNull { (productId, quantity) ->
+                        val product = ProductCatalogRepositoryProvider.repository.getProductById(productId)
+                        if (product != null && quantity > 0) {
+                            OrderSummaryItem(
+                                    productId = product.id,
+                                    name = product.name,
+                                    quantity = quantity,
+                                    unitPrice = product.pricing.price,
+                                    currency = product.pricing.currency
+                            )
+                        } else null
+                    }
+            val currencyCode = summaryItems.firstOrNull()?.currency ?: "COP"
+            val totalAmount = summaryItems.sumOf { it.lineTotal }
+            OrderSummaryScreen(
+                    orderId = "777777",
+                    status = "Procesando",
+                    totalAmountFormatted =
+                            if (summaryItems.isEmpty()) "-" else formatCurrency(currencyCode, totalAmount),
+                    items = summaryItems,
+                    onBackClick = { navController.navigateUp() }
+            )
         }
 
         // Pantalla de Clientes
@@ -205,4 +238,10 @@ fun AppNavHost(
         }
 
     }
+}
+
+private fun formatCurrency(currencyCode: String, amount: Double): String {
+    val formatter = NumberFormat.getCurrencyInstance(Locale.getDefault())
+    formatter.currency = Currency.getInstance(currencyCode)
+    return formatter.format(amount)
 }

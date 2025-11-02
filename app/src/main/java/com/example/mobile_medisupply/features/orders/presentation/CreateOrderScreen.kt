@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -40,7 +41,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -129,7 +129,8 @@ fun CreateOrderScreen(
 
             LazyColumn(
                     modifier =
-                            Modifier.fillMaxSize()
+                            Modifier.weight(1f)
+                                    .fillMaxWidth()
                                     .padding(horizontal = 16.dp)
                                     .padding(bottom = 88.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
@@ -552,11 +553,12 @@ private fun OrderFooter(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            TextButton(
+            Button(
                     onClick = onSubmitClick,
-                    enabled = totalUnits > 0
+                    enabled = totalUnits > 0,
+                    modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Revisar selección")
+                Text("Ordenar")
             }
         }
     }

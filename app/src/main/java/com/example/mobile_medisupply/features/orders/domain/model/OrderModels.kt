@@ -41,3 +41,13 @@ data class ProductPricing(
         val formattedPrice: String,
         val lastUpdated: String
 )
+
+data class OrderSummaryItem(
+        val productId: String,
+        val name: String,
+        val quantity: Int,
+        val unitPrice: Double,
+        val currency: String
+) {
+    val lineTotal: Double get() = unitPrice * quantity
+}
