@@ -49,3 +49,11 @@ object NetworkModule {
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
 }
+
+
+data class ApiResponse<T>(
+    val success: Boolean,
+    val result: T? = null,
+    val message: String? = null,
+    val timestamp: String? = null
+)
