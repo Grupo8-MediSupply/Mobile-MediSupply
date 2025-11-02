@@ -7,6 +7,10 @@ sealed class Screen(val route: String) {
     object Home : Screen("visitas")
     object Inventory : Screen("ordenes")
     object CreateOrder : Screen("ordenes/nueva")
+    object ProductDetail : Screen("ordenes/producto/{productId}") {
+        private const val PARAM = "productId"
+        fun createRoute(productId: String) = "ordenes/producto/$productId"
+    }
     object Clients : Screen("clientes")
     object ClientDetail : Screen("clientes/detail/{clientId}") {
         private const val PARAM = "clientId"

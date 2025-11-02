@@ -7,6 +7,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -24,7 +26,9 @@ import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvi
 import com.example.mobile_medisupply.features.clients.presentation.ClientDetailScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
+import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
 import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScreen
+import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
 
 @Composable
@@ -35,6 +39,8 @@ fun AppNavHost(
         session: UserSession?,
         modifier: Modifier = Modifier
 ) {
+    val orderSelections = remember { mutableStateMapOf<String, Int>() }
+
     NavHost(
             navController = navController,
             startDestination = Screen.Login.route,
@@ -92,9 +98,47 @@ fun AppNavHost(
             CreateOrderScreen(
                     userRole = session?.role ?: UserRole.VENDEDOR,
                     sessionClientId = session?.userId,
+                    selections = orderSelections,
                     onBackClick = { navController.navigateUp() },
-                    onOrderSubmit = { navController.navigateUp() }
+                    onOrderSubmit = { navController.navigateUp() },
+                    onProductDetail = { product ->
+                        navController.navigate(Screen.ProductDetail.createRoute(product.id))
+                    }
             )
+        }
+
+        composable(
+                route = Screen.ProductDetail.route,
+                arguments = listOf(navArgument("productId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString("productId")
+            val product = productId?.let { ProductCatalogRepositoryProvider.repository.getProductById(it) }
+            if (product == null) {
+                Surface {
+                    Text(
+                            text = "No encontramos la información del producto.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            modifier =
+                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                            .wrapContentSize(Alignment.Center)
+                    )
+                }
+            } else {
+                ProductDetailScreen(
+                        product = product,
+                        currentQuantity = orderSelections[product.id] ?: 0,
+                        onBackClick = { navController.navigateUp() },
+                        onQuantityConfirmed = { quantity ->
+                            if (quantity <= 0) {
+                                orderSelections.remove(product.id)
+                            } else {
+                                orderSelections[product.id] = quantity
+                            }
+                            navController.navigateUp()
+                        }
+                )
+            }
         }
 
         // Pantalla de Clientes

@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.example.mobile_medisupply.features.orders.presentation
 
@@ -7,8 +7,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,14 +21,11 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.outlined.Category
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.FilterList
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.DropdownMenu
@@ -50,7 +45,6 @@ import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -64,22 +58,15 @@ import com.example.mobile_medisupply.features.auth.domain.model.UserRole
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
 import com.example.mobile_medisupply.features.clients.domain.model.ClientSummary
 import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
-import com.example.mobile_medisupply.features.orders.domain.model.ProductAvailability
 import com.example.mobile_medisupply.features.orders.domain.model.ProductCatalogItem
-import com.example.mobile_medisupply.features.orders.domain.model.ProductLot
-
-data class SelectedLotKey(
-        val productId: String,
-        val warehouseId: String,
-        val lotId: String
-)
 
 @Composable
 fun CreateOrderScreen(
         userRole: UserRole,
         sessionClientId: String?,
+        selections: Map<String, Int>,
         onBackClick: () -> Unit,
-        onOrderSubmit: (List<SelectedLotKey>) -> Unit = {},
+        onOrderSubmit: (Map<String, Int>) -> Unit = {},
         onProductDetail: (ProductCatalogItem) -> Unit = {}
 ) {
     val catalog = remember { ProductCatalogRepositoryProvider.repository.getCatalog() }
@@ -109,7 +96,6 @@ fun CreateOrderScreen(
                 }
             }
 
-    val selectedLots = remember { mutableStateListOf<SelectedLotKey>() }
     val focusManager = LocalFocusManager.current
 
     val initialClient =
@@ -126,6 +112,9 @@ fun CreateOrderScreen(
             selectedClient = initialClient
         }
     }
+
+    val totalUnits = selections.values.sum()
+    val totalProducts = selections.count { it.value > 0 }
 
     Surface(
             modifier = Modifier.fillMaxSize(),
@@ -157,9 +146,7 @@ fun CreateOrderScreen(
                                 userRole = userRole,
                                 selectedClient = selectedClient,
                                 clients = clients,
-                                onClientSelected = {
-                                    selectedClient = it
-                                }
+                                onClientSelected = { selectedClient = it }
                         )
 
                         SearchBar(
@@ -177,35 +164,25 @@ fun CreateOrderScreen(
                 }
 
                 if (filteredProducts.isEmpty()) {
-                    item {
-                        EmptyCatalogState()
-                    }
+                    item { EmptyCatalogState() }
                 } else {
                     items(filteredProducts, key = { it.id }) { product ->
+                        val selectedQuantity = selections[product.id] ?: 0
                         ProductCatalogCard(
                                 product = product,
-                                isSelected = selectedLots.any { it.productId == product.id },
-                                selectedLots = selectedLots,
-                                onLotToggle = { lotKey ->
-                                    if (selectedLots.contains(lotKey)) {
-                                        selectedLots.remove(lotKey)
-                                    } else {
-                                        selectedLots.add(lotKey)
-                                    }
-                                },
+                                selectedQuantity = selectedQuantity,
                                 onProductDetail = { onProductDetail(product) }
                         )
                     }
                 }
 
-                item {
-                    Spacer(modifier = Modifier.height(64.dp))
-                }
+                item { Spacer(modifier = Modifier.height(64.dp)) }
             }
 
             OrderFooter(
-                    selectedCount = selectedLots.size,
-                    onSubmitClick = { onOrderSubmit(selectedLots.toList()) },
+                    totalProducts = totalProducts,
+                    totalUnits = totalUnits,
+                    onSubmitClick = { onOrderSubmit(selections) },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
@@ -381,7 +358,7 @@ private fun CategorySelector(
                 modifier = Modifier.weight(1f).clickable { expanded = true },
                 readOnly = true,
                 label = { Text("Categorías") },
-                trailingIcon = { Icon(Icons.Outlined.Category, contentDescription = null) }
+                trailingIcon = { Icon(Icons.Outlined.FilterList, contentDescription = null) }
         )
 
         Surface(
@@ -389,17 +366,16 @@ private fun CategorySelector(
                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                 modifier =
                         Modifier.size(44.dp)
-                                .clickable { expanded = true },
-                content = {
-                    Box(contentAlignment = Alignment.Center) {
-                        Icon(
-                                imageVector = Icons.Outlined.FilterList,
-                                contentDescription = "Filtrar",
-                                tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-        )
+                                .clickable { expanded = true }
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Icon(
+                        imageVector = Icons.Outlined.ChevronRight,
+                        contentDescription = "Abrir categorías",
+                        tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
     }
 
     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
@@ -418,23 +394,14 @@ private fun CategorySelector(
 @Composable
 private fun ProductCatalogCard(
         product: ProductCatalogItem,
-        isSelected: Boolean,
-        selectedLots: List<SelectedLotKey>,
-        onLotToggle: (SelectedLotKey) -> Unit,
+        selectedQuantity: Int,
         onProductDetail: () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
     Card(
-            modifier =
-                    Modifier.fillMaxWidth()
-                            .clickable { expanded = !expanded },
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onProductDetail),
             colors =
                     CardDefaults.cardColors(
-                            containerColor =
-                                    if (expanded)
-                                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-                                    else MaterialTheme.colorScheme.surface
+                            containerColor = MaterialTheme.colorScheme.surface
                     ),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
@@ -450,7 +417,7 @@ private fun ProductCatalogCard(
                             color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                            text = product.category,
+                            text = product.presentation,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -465,83 +432,47 @@ private fun ProductCatalogCard(
                 }
             }
 
-            if (expanded) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                        text = product.description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            Spacer(modifier = Modifier.height(8.dp))
 
-                Spacer(modifier = Modifier.height(12.dp))
-                product.availability.forEach { availability ->
-                    WarehouseSection(
-                            availability = availability,
-                            selectedLots = selectedLots,
-                            productId = product.id,
-                            onLotToggle = onLotToggle
+            Text(
+                    text = product.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text(
+                            text = "Categoría: ${product.category}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                            text = "Proveedor: ${product.provider}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            }
-        }
-    }
-}
 
-@Composable
-private fun WarehouseSection(
-        availability: ProductAvailability,
-        selectedLots: List<SelectedLotKey>,
-        productId: String,
-        onLotToggle: (SelectedLotKey) -> Unit
-) {
-    Column(
-            modifier =
-                    Modifier.fillMaxWidth()
-                            .background(
-                                    MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f),
-                                    shape = MaterialTheme.shapes.medium
-                            )
-                            .padding(12.dp)
-    ) {
-        Text(
-                text = availability.warehouseName,
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                color = MaterialTheme.colorScheme.onSurface
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            availability.lots.forEach { lot ->
-                val key = SelectedLotKey(productId, availability.warehouseId, lot.lotId)
-                val isSelected = selectedLots.contains(key)
-
-                AssistChip(
-                        onClick = { onLotToggle(key) },
-                        label = { Text("Lote ${lot.lotCode}") },
-                        trailingIcon = {
-                            Text(
-                                    text = "${lot.availableUnits} u",
-                                    style = MaterialTheme.typography.labelSmall
-                            )
-                        },
-                        colors =
-                                AssistChipDefaults.assistChipColors(
-                                        containerColor =
-                                                if (isSelected)
-                                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
-                                                else MaterialTheme.colorScheme.surface,
-                                        labelColor =
-                                                if (isSelected)
-                                                        MaterialTheme.colorScheme.primary
-                                                else MaterialTheme.colorScheme.onSurface
-                                )
-                )
+                if (selectedQuantity > 0) {
+                    Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                    ) {
+                        Text(
+                                text = "${selectedQuantity} u",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                        )
+                    }
+                }
             }
         }
     }
@@ -577,7 +508,8 @@ private fun EmptyCatalogState() {
 
 @Composable
 private fun OrderFooter(
-        selectedCount: Int,
+        totalProducts: Int,
+        totalUnits: Int,
         onSubmitClick: () -> Unit,
         modifier: Modifier = Modifier
 ) {
@@ -588,40 +520,43 @@ private fun OrderFooter(
             tonalElevation = 3.dp,
             shape = MaterialTheme.shapes.large
     ) {
-        Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-        ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (selectedCount > 0) {
-                    Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.size(28.dp)
-                    ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text(
-                                    text = selectedCount.toString(),
-                                    color = MaterialTheme.colorScheme.onError,
-                                    style = MaterialTheme.typography.labelLarge
-                            )
-                        }
+                Surface(
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        modifier = Modifier.size(32.dp)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                                imageVector = Icons.Outlined.Inventory2,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                        )
                     }
-                    Spacer(modifier = Modifier.size(8.dp))
                 }
-                Text(
-                        text = "Ordenar",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
-                )
+                Spacer(modifier = Modifier.size(12.dp))
+                Column {
+                    Text(
+                            text = "Productos seleccionados: $totalProducts",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                            text = "Unidades totales: $totalUnits",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             TextButton(
                     onClick = onSubmitClick,
-                    enabled = selectedCount > 0
+                    enabled = totalUnits > 0
             ) {
-                Text("Continuar")
+                Text("Revisar selección")
             }
         }
     }

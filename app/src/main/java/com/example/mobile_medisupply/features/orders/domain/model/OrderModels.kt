@@ -17,20 +17,27 @@ data class OrderSummary(
 data class ProductCatalogItem(
         val id: String,
         val name: String,
-        val category: String,
         val description: String,
-        val availability: List<ProductAvailability>
+        val presentation: String,
+        val unit: String,
+        val category: String,
+        val provider: String,
+        val country: String,
+        val guidelineLabel: String?,
+        val inventory: ProductInventory,
+        val pricing: ProductPricing
 )
 
-data class ProductAvailability(
-        val warehouseId: String,
-        val warehouseName: String,
-        val lots: List<ProductLot>
+data class ProductInventory(
+        val total: Int,
+        val reserved: Int,
+        val available: Int,
+        val warehouse: String
 )
 
-data class ProductLot(
-        val lotId: String,
-        val lotCode: String,
-        val expiresAt: String,
-        val availableUnits: Int
+data class ProductPricing(
+        val currency: String,
+        val price: Double,
+        val formattedPrice: String,
+        val lastUpdated: String
 )
