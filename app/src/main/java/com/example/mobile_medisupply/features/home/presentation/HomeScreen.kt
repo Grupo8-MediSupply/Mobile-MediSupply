@@ -73,29 +73,34 @@ fun HomeScreen(
 
 @Composable
 private fun Header(onScheduleVisitClick: () -> Unit) {
-    Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+        ) {
             Text(
                     text = stringResource(R.string.scheduled_visits_title),
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f, fill = true)
             )
-            Text(
-                    text = stringResource(R.string.scheduled_visits_subtitle),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            Spacer(modifier = Modifier.size(16.dp))
+
+            ElevatedButton(onClick = onScheduleVisitClick) {
+                Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null)
+                Spacer(modifier = Modifier.size(8.dp))
+                Text(text = stringResource(R.string.schedule_visit_button))
+            }
         }
 
-        ElevatedButton(onClick = onScheduleVisitClick) {
-            Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null)
-            Spacer(modifier = Modifier.size(8.dp))
-            Text(text = stringResource(R.string.schedule_visit_button))
-        }
+        Text(
+                text = stringResource(R.string.scheduled_visits_subtitle),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+        )
     }
 }
 
