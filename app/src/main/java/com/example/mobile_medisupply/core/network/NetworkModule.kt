@@ -1,6 +1,7 @@
 package com.example.mobile_medisupply.core.network
 
 import com.example.mobile_medisupply.features.auth.data.remote.AuthApi
+import com.example.mobile_medisupply.features.config.data.remote.ConfigApi
 import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
@@ -48,4 +49,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideAuthApi(retrofit: Retrofit): AuthApi = retrofit.create(AuthApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideConfigApi(retrofit: Retrofit): ConfigApi = retrofit.create(ConfigApi::class.java)
 }

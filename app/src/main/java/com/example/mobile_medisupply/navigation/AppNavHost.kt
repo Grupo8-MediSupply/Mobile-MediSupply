@@ -7,6 +7,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -16,20 +18,36 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import java.text.NumberFormat
+import java.util.Currency
+import java.util.Locale
+import com.example.mobile_medisupply.features.auth.data.repository.UserSession
+import com.example.mobile_medisupply.features.auth.domain.model.UserRole
+import com.example.mobile_medisupply.features.config.domain.model.AppConfig
 import com.example.mobile_medisupply.features.auth.presentation.login.LoginScreen
 import com.example.mobile_medisupply.features.auth.presentation.register.RegisterScreen
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
 import com.example.mobile_medisupply.features.clients.presentation.ClientDetailScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
+import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
+import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
+import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScreen
+import com.example.mobile_medisupply.features.orders.presentation.OrderSummaryScreen
+import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
+import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
 
 @Composable
 fun AppNavHost(
         navController: NavHostController,
         canViewClients: Boolean,
         onLoginSuccess: () -> Unit,
+        session: UserSession?,
+        config: AppConfig?,
         modifier: Modifier = Modifier
 ) {
+    val orderSelections = remember { mutableStateMapOf<String, Int>() }
+
     NavHost(
             navController = navController,
             startDestination = Screen.Login.route,
@@ -78,8 +96,86 @@ fun AppNavHost(
         // Pantalla de Recuperación (placeholder)
         composable(Screen.Recover.route) { Text("Recover Password Screen") }
 
-        // Pantalla de Inventario (placeholder)
-        composable(Screen.Inventory.route) { Text("Ordenes") }
+        // Pantalla de Órdenes
+        composable(Screen.Inventory.route) {
+            OrdersScreen(onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) })
+        }
+
+        composable(Screen.CreateOrder.route) {
+            CreateOrderScreen(
+                    userRole = session?.role ?: UserRole.VENDEDOR,
+                    sessionClientId = session?.userId,
+                    selections = orderSelections,
+                    onBackClick = { navController.navigateUp() },
+                    onOrderSubmit = {
+                        navController.navigate(Screen.OrderSummary.route)
+                    },
+                    onProductDetail = { product ->
+                        navController.navigate(Screen.ProductDetail.createRoute(product.id))
+                    }
+            )
+        }
+
+        composable(
+                route = Screen.ProductDetail.route,
+                arguments = listOf(navArgument("productId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString("productId")
+            val product = productId?.let { ProductCatalogRepositoryProvider.repository.getProductById(it) }
+            if (product == null) {
+                Surface {
+                    Text(
+                            text = "No encontramos la información del producto.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            textAlign = TextAlign.Center,
+                            modifier =
+                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                            .wrapContentSize(Alignment.Center)
+                    )
+                }
+            } else {
+                ProductDetailScreen(
+                        product = product,
+                        currentQuantity = orderSelections[product.id] ?: 0,
+                        onBackClick = { navController.navigateUp() },
+                        onQuantityConfirmed = { quantity ->
+                            if (quantity <= 0) {
+                                orderSelections.remove(product.id)
+                            } else {
+                                orderSelections[product.id] = quantity
+                            }
+                            navController.navigateUp()
+                        }
+                )
+            }
+        }
+
+        composable(Screen.OrderSummary.route) {
+            val summaryItems =
+                    orderSelections.mapNotNull { (productId, quantity) ->
+                        val product = ProductCatalogRepositoryProvider.repository.getProductById(productId)
+                        if (product != null && quantity > 0) {
+                            OrderSummaryItem(
+                                    productId = product.id,
+                                    name = product.name,
+                                    quantity = quantity,
+                                    unitPrice = product.pricing.price,
+                                    currency = product.pricing.currency
+                            )
+                        } else null
+                    }
+            val currencyCode = summaryItems.firstOrNull()?.currency ?: "COP"
+            val totalAmount = summaryItems.sumOf { it.lineTotal }
+            OrderSummaryScreen(
+                    orderId = "777777",
+                    status = "Procesando",
+                    totalAmountFormatted =
+                            if (summaryItems.isEmpty()) "-" else formatCurrency(currencyCode, totalAmount),
+                    items = summaryItems,
+                    currencyCode = config?.country?.currencyCode ?: currencyCode,
+                    onBackClick = { navController.navigateUp() }
+            )
+        }
 
         // Pantalla de Clientes
         composable(Screen.Clients.route) {
@@ -145,4 +241,10 @@ fun AppNavHost(
         }
 
     }
+}
+
+private fun formatCurrency(currencyCode: String, amount: Double): String {
+    val formatter = NumberFormat.getCurrencyInstance(Locale.getDefault())
+    formatter.currency = Currency.getInstance(currencyCode)
+    return formatter.format(amount)
 }
