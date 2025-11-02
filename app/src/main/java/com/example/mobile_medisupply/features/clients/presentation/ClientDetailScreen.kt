@@ -2,8 +2,8 @@ package com.example.mobile_medisupply.features.clients.presentation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,9 +14,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ArrowForward
+import androidx.compose.material.icons.outlined.CalendarMonth
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.MoreVert
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -27,12 +31,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.example.mobile_medisupply.R
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
 import com.example.mobile_medisupply.features.clients.domain.model.ClientDetail
 import com.example.mobile_medisupply.features.clients.domain.model.ClientOrderSummary
+import com.example.mobile_medisupply.features.clients.domain.model.ClientVisitStatus
+import com.example.mobile_medisupply.features.clients.domain.model.ClientVisitSummary
 import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
 
 @Composable
@@ -40,7 +48,8 @@ fun ClientDetailScreen(
         clientDetail: ClientDetail,
         onBackClick: () -> Unit = {},
         onShowAllOrders: () -> Unit = {},
-        onOrderSelected: (ClientOrderSummary) -> Unit = {}
+        onOrderSelected: (ClientOrderSummary) -> Unit = {},
+        onVisitSelected: (ClientVisitSummary) -> Unit = {}
 ) {
     Surface(
             modifier = Modifier.fillMaxSize(),
@@ -71,6 +80,13 @@ fun ClientDetailScreen(
             Spacer(modifier = Modifier.height(16.dp))
 
             ClientDetailCard(clientDetail)
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            VisitsSection(
+                    visits = clientDetail.visits,
+                    onVisitSelected = onVisitSelected
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
@@ -221,6 +237,145 @@ private fun ClientOrderRow(order: ClientOrderSummary, onClick: () -> Unit) {
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+@Composable
+private fun VisitsSection(
+        visits: List<ClientVisitSummary>,
+        onVisitSelected: (ClientVisitSummary) -> Unit
+) {
+    Column(
+            modifier =
+                    Modifier.fillMaxWidth()
+                            .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.9f))
+                            .clip(MaterialTheme.shapes.large)
+    ) {
+        Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                    text = stringResource(R.string.client_visits_header),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+            )
+            Icon(
+                    imageVector = Icons.Outlined.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (visits.isEmpty()) {
+            Text(
+                    text = stringResource(R.string.client_visits_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp)
+            )
+        } else {
+            visits.forEachIndexed { index, visit ->
+                VisitRow(visit = visit, onClick = { onVisitSelected(visit) })
+                if (index < visits.lastIndex) {
+                    Spacer(
+                            modifier =
+                                    Modifier.fillMaxWidth()
+                                            .height(1.dp)
+                                            .background(
+                                                    MaterialTheme.colorScheme.surfaceVariant.copy(
+                                                            alpha = 0.6f
+                                                    )
+                                            )
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun VisitRow(visit: ClientVisitSummary, onClick: () -> Unit) {
+    Row(
+            modifier =
+                    Modifier.fillMaxWidth().clickable(onClick = onClick).padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically
+    ) {
+        Card(
+                colors =
+                        CardDefaults.cardColors(
+                                containerColor =
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                contentColor = MaterialTheme.colorScheme.primary
+                        ),
+                shape = MaterialTheme.shapes.medium
+        ) {
+            Box(
+                    modifier = Modifier.height(44.dp).fillMaxWidth(0.2f),
+                    contentAlignment = Alignment.Center
+            ) {
+                Icon(imageVector = Icons.Outlined.CalendarMonth, contentDescription = null)
+            }
+        }
+
+        Column(modifier = Modifier.padding(start = 16.dp).weight(1f)) {
+            Text(
+                    text = visit.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                    text =
+                            stringResource(
+                                    R.string.client_visit_schedule_label,
+                                    visit.scheduledDate
+                            ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        VisitStatusBadge(status = visit.status)
+    }
+}
+
+@Composable
+private fun VisitStatusBadge(status: ClientVisitStatus) {
+    val (labelRes, colors) =
+            when (status) {
+                ClientVisitStatus.PROGRAMADA ->
+                        R.string.client_visit_status_programmed to
+                                AssistChipDefaults.assistChipColors(
+                                        containerColor =
+                                                MaterialTheme.colorScheme.secondary.copy(alpha = 0.12f),
+                                        labelColor = MaterialTheme.colorScheme.secondary
+                                )
+                ClientVisitStatus.EN_CURSO ->
+                        R.string.client_visit_status_in_progress to
+                                AssistChipDefaults.assistChipColors(
+                                        containerColor =
+                                                MaterialTheme.colorScheme.tertiary.copy(alpha = 0.16f),
+                                        labelColor = MaterialTheme.colorScheme.tertiary
+                                )
+                ClientVisitStatus.FINALIZADA ->
+                        R.string.client_visit_status_completed to
+                                AssistChipDefaults.assistChipColors(
+                                        containerColor =
+                                                MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                        labelColor = MaterialTheme.colorScheme.primary
+                                )
+            }
+    AssistChip(
+            onClick = {},
+            label = {
+                Text(
+                        text = stringResource(labelRes),
+                        style = MaterialTheme.typography.labelLarge
+                )
+            },
+            colors = colors,
+            border = null
+    )
 }
 
 @Preview(showBackground = true, widthDp = 360)

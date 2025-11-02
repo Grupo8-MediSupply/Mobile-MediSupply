@@ -47,6 +47,14 @@ fun MainApp(mainViewModel: MainViewModel) {
     val currentDestination = navBackStackEntry?.destination
     val session by mainViewModel.session.collectAsStateWithLifecycle()
     val config by mainViewModel.config.collectAsStateWithLifecycle()
+    val canViewVisits =
+            remember(session) {
+                when (session?.role) {
+                    UserRole.ADMIN, UserRole.VENDEDOR -> true
+                    else -> false
+                }
+            }
+
     val canViewClients =
             remember(session) {
                 when (session?.role) {
@@ -57,9 +65,9 @@ fun MainApp(mainViewModel: MainViewModel) {
 
     // Define las pantallas principales que mostrarán la barra de navegación
     val bottomBarRoutes =
-            remember(canViewClients) {
+            remember(canViewClients, canViewVisits) {
                 buildSet {
-                    add(Screen.Home.route)
+                    if (canViewVisits) add(Screen.Home.route)
                     add(Screen.Inventory.route)
                     if (canViewClients) add(Screen.Clients.route)
                 }
@@ -145,7 +153,9 @@ fun MainApp(mainViewModel: MainViewModel) {
                     NavigationBar {
                         val items =
                                 buildList {
-                                    add(Screen.Home to Icons.Default.Home)
+                                    if (canViewVisits) {
+                                        add(Screen.Home to Icons.Default.CalendarMonth)
+                                    }
                                     add(Screen.Inventory to Icons.Default.Inventory)
                                     if (canViewClients) {
                                         add(Screen.Clients to Icons.Default.Person)
@@ -186,6 +196,7 @@ fun MainApp(mainViewModel: MainViewModel) {
                     AppNavHost(
                             navController = navController,
                             canViewClients = canViewClients,
+                            canViewVisits = canViewVisits,
                             onLoginSuccess = {
                                 mainViewModel.refreshSession()
                                 mainViewModel.refreshConfig()

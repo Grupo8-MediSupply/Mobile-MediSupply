@@ -43,21 +43,21 @@ class FakeProductCatalogRepository : ProductCatalogRepository {
                             unit = "Blister",
                             category = "Analgesia",
                             provider = "Salud Pharma",
-                            country = "MX",
+                            country = "CO",
                             guidelineLabel = null,
                             inventory =
                                     ProductInventory(
                                             total = 540,
                                             reserved = 60,
                                             available = 480,
-                                            warehouse = "CDMX Centro"
+                                            warehouse = "Bogotá Centro"
                                     ),
                             pricing =
                                     ProductPricing(
-                                            currency = "MXN",
-                                            price = 95.0,
-                                            formattedPrice = "$ 95.00 MXN",
-                                            lastUpdated = "05/01/2025"
+                                            currency = "COP",
+                                            price = 3200.0,
+                                            formattedPrice = "$ 3.200 COP",
+                                            lastUpdated = "01/05/2025"
                                     )
                     ),
                     ProductCatalogItem(
@@ -93,20 +93,20 @@ class FakeProductCatalogRepository : ProductCatalogRepository {
                             unit = "Unidad",
                             category = "Material de curación",
                             provider = "MediTools",
-                            country = "MX",
+                            country = "CO",
                             guidelineLabel = null,
                             inventory =
                                     ProductInventory(
                                             total = 920,
                                             reserved = 150,
                                             available = 770,
-                                            warehouse = "Guadalajara Norte"
+                                            warehouse = "Medellín Norte"
                                     ),
                             pricing =
                                     ProductPricing(
-                                            currency = "MXN",
-                                            price = 12.5,
-                                            formattedPrice = "$ 12.50 MXN",
+                                            currency = "COP",
+                                            price = 1200.0,
+                                            formattedPrice = "$ 1.200 COP",
                                             lastUpdated = "22/11/2024"
                                     )
                     ),
@@ -125,7 +125,7 @@ class FakeProductCatalogRepository : ProductCatalogRepository {
                                             total = 410,
                                             reserved = 70,
                                             available = 340,
-                                            warehouse = "Monterrey Centro"
+                                            warehouse = "Cali Centro"
                                     ),
                             pricing =
                                     ProductPricing(

@@ -7,6 +7,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -29,6 +30,8 @@ import com.example.mobile_medisupply.features.auth.presentation.register.Registe
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
 import com.example.mobile_medisupply.features.clients.presentation.ClientDetailScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
+import com.example.mobile_medisupply.features.clients.presentation.VisitDetailScreen
+import com.example.mobile_medisupply.features.home.presentation.CreateVisitScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
 import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
@@ -41,6 +44,7 @@ import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
 fun AppNavHost(
         navController: NavHostController,
         canViewClients: Boolean,
+        canViewVisits: Boolean,
         onLoginSuccess: () -> Unit,
         session: UserSession?,
         config: AppConfig?,
@@ -85,16 +89,71 @@ fun AppNavHost(
             )
         }
 
-        // Pantalla de Home
+        // Pantalla de Home (Visitas)
         composable(Screen.Home.route) {
-            HomeScreen(
-                    onNavigateToInventory = { navController.navigate(Screen.Inventory.route) },
-                    onNavigateToClients = { navController.navigate(Screen.Clients.route) }
-            )
+            if (canViewVisits) {
+                HomeScreen(
+                        onScheduleVisitClick = { navController.navigate(Screen.CreateVisit.route) },
+                        onVisitClick = { visit ->
+                            if (canViewClients) {
+                                navController.navigate(
+                                        Screen.ClientDetail.createRoute(visit.clientId)
+                                )
+                            }
+                        }
+                )
+            } else {
+                Surface {
+                    Text(
+                            text = "No tienes permisos para ver esta sección.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier =
+                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                            .wrapContentSize(Alignment.Center)
+                    )
+                }
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.Inventory.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                }
+            }
         }
 
         // Pantalla de Recuperación (placeholder)
         composable(Screen.Recover.route) { Text("Recover Password Screen") }
+
+        // Pantalla de Crear Visita
+        composable(Screen.CreateVisit.route) {
+            if (canViewVisits) {
+                CreateVisitScreen(
+                        clients = ClientRepositoryProvider.repository.getClients(),
+                        onBackClick = { navController.navigateUp() },
+                        onSubmit = {
+                            navController.popBackStack()
+                        }
+                )
+            } else {
+                Surface {
+                    Text(
+                            text = "No tienes permisos para ver esta sección.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier =
+                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                            .wrapContentSize(Alignment.Center)
+                    )
+                }
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.Inventory.route) {
+                        popUpTo(Screen.CreateVisit.route) { inclusive = true }
+                    }
+                }
+            }
+        }
 
         // Pantalla de Órdenes
         composable(Screen.Inventory.route) {
@@ -223,12 +282,70 @@ fun AppNavHost(
                 if (detail != null) {
                     ClientDetailScreen(
                             clientDetail = detail,
-                            onBackClick = { navController.navigateUp() }
+                            onBackClick = { navController.navigateUp() },
+                            onVisitSelected = { visit ->
+                                navController.navigate(
+                                        Screen.VisitDetail.createRoute(detail.id, visit.id)
+                                )
+                            }
                     )
                 } else {
                     Surface {
                         Text(
                                 text = "No encontramos la información del cliente.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                textAlign = TextAlign.Center,
+                                modifier =
+                                        Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                                .wrapContentSize(Alignment.Center)
+                        )
+                    }
+                }
+            }
+        }
+        composable(
+                route = Screen.VisitDetail.route,
+                arguments =
+                        listOf(
+                                navArgument("clientId") { type = NavType.StringType },
+                                navArgument("visitId") { type = NavType.StringType }
+                        )
+        ) { backStackEntry ->
+            if (!canViewClients) {
+                Surface {
+                    Text(
+                            text = "No tienes permisos para ver esta sección.",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            textAlign = TextAlign.Center,
+                            modifier =
+                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                            .wrapContentSize(Alignment.Center)
+                    )
+                }
+            } else {
+                val clientId = backStackEntry.arguments?.getString("clientId")
+                val visitId = backStackEntry.arguments?.getString("visitId")
+                val clientDetail =
+                        clientId?.let { ClientRepositoryProvider.repository.getClientDetail(it) }
+                val visitDetail =
+                        if (clientId != null && visitId != null) {
+                            ClientRepositoryProvider.repository.getClientVisitDetail(
+                                    clientId,
+                                    visitId
+                            )
+                        } else null
+                if (clientDetail != null && visitDetail != null) {
+                    VisitDetailScreen(
+                            clientName = clientDetail.name,
+                            visitDetail = visitDetail,
+                            onBackClick = { navController.navigateUp() },
+                            onSaveClick = { _, _ -> navController.navigateUp() }
+                    )
+                } else {
+                    Surface {
+                        Text(
+                                text = "No encontramos la información de la visita.",
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center,
                                 modifier =
