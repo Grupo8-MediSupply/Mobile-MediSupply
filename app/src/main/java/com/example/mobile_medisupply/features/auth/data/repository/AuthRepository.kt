@@ -1,6 +1,7 @@
 package com.example.mobile_medisupply.features.auth.data.repository
 
 import android.util.Base64
+import android.util.Log
 import com.example.mobile_medisupply.features.auth.data.local.SessionManager
 import com.example.mobile_medisupply.features.auth.data.remote.AuthApi
 import com.example.mobile_medisupply.features.auth.data.remote.CrearClienteRequest
@@ -8,6 +9,7 @@ import com.example.mobile_medisupply.features.auth.data.remote.CrearClienteResul
 import com.example.mobile_medisupply.features.auth.data.remote.LoginRequest
 import com.example.mobile_medisupply.features.auth.domain.model.Region
 import com.example.mobile_medisupply.features.auth.domain.model.UserRole
+import com.example.mobile_medisupply.features.config.data.ConfigRepository
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -16,7 +18,11 @@ import org.json.JSONObject
 
 class AuthRepository
 @Inject
-constructor(private val authApi: AuthApi, private val sessionManager: SessionManager) {
+constructor(
+        private val authApi: AuthApi,
+        private val sessionManager: SessionManager,
+        private val configRepository: ConfigRepository
+) {
     suspend fun login(email: String, password: String): Flow<Result<UserSession>> = flow {
         try {
             val response = authApi.login(LoginRequest(email, password))
@@ -29,6 +35,8 @@ constructor(private val authApi: AuthApi, private val sessionManager: SessionMan
                                 )
                 val userSession = decodeToken(token)
                 sessionManager.saveSession(userSession)
+                runCatching { configRepository.fetchAndCacheConfig(token) }
+                        .onFailure { Log.w(TAG, "Failed to fetch configuration", it) }
                 emit(Result.success(userSession))
             } else {
                 val message =
@@ -95,7 +103,10 @@ constructor(private val authApi: AuthApi, private val sessionManager: SessionMan
 
     fun getSession(): UserSession? = sessionManager.getSession()
 
-    fun clearSession() = sessionManager.clearSession()
+    fun clearSession() {
+        sessionManager.clearSession()
+        configRepository.clearCachedConfig()
+    }
 
     private fun decodeToken(token: String): UserSession {
         val parts = token.split(".")
@@ -110,6 +121,9 @@ constructor(private val authApi: AuthApi, private val sessionManager: SessionMan
                 role = UserRole.fromId(json.getString("role").toInt()),
                 region = Region.fromId(json.getString("pais").toInt())
         )
+    }
+    companion object {
+        private const val TAG = "AuthRepository"
     }
 }
 
