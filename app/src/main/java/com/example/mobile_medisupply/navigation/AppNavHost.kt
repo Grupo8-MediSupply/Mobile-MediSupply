@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -30,6 +31,7 @@ import com.example.mobile_medisupply.features.auth.presentation.register.Registe
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
 import com.example.mobile_medisupply.features.clients.presentation.ClientDetailScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
+import com.example.mobile_medisupply.features.clients.presentation.ClientsViewModel
 import com.example.mobile_medisupply.features.clients.presentation.VisitDetailScreen
 import com.example.mobile_medisupply.features.home.presentation.CreateVisitScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
@@ -239,7 +241,10 @@ fun AppNavHost(
         // Pantalla de Clientes
         composable(Screen.Clients.route) {
             if (canViewClients) {
+                val viewModel: ClientsViewModel = hiltViewModel()
+
                 ClientsScreen(
+                    viewModel = viewModel,
                         onClientSelected = { client ->
                             navController.navigate(Screen.ClientDetail.createRoute(client.id))
                     }
