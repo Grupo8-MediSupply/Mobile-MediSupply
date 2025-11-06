@@ -4,6 +4,8 @@ import com.example.mobile_medisupply.features.auth.data.local.SessionManager
 import com.example.mobile_medisupply.features.auth.data.remote.AuthApi
 import com.example.mobile_medisupply.features.clients.data.remote.ClienteApi
 import com.example.mobile_medisupply.features.config.data.remote.ConfigApi
+import com.example.mobile_medisupply.features.home.data.remote.VisitApi
+import com.example.mobile_medisupply.features.orders.data.remote.ProductApi
 import com.google.gson.Gson
 import dagger.Module
 import dagger.Provides
@@ -83,6 +85,16 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideClientesApi(retrofit: Retrofit): ClienteApi = retrofit.create(ClienteApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideVisitApi(retrofit: Retrofit): VisitApi =
+        retrofit.create(VisitApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideProductApi(retrofit: Retrofit): ProductApi =
+        retrofit.create(ProductApi::class.java)
 }
 
 

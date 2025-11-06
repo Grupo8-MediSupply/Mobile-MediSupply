@@ -35,6 +35,7 @@ import com.example.mobile_medisupply.features.clients.presentation.ClientsViewMo
 import com.example.mobile_medisupply.features.clients.presentation.VisitDetailScreen
 import com.example.mobile_medisupply.features.home.presentation.CreateVisitScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
+import com.example.mobile_medisupply.features.home.presentation.HomeViewModel
 import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
 import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
 import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScreen
@@ -94,7 +95,9 @@ fun AppNavHost(
         // Pantalla de Home (Visitas)
         composable(Screen.Home.route) {
             if (canViewVisits) {
+                val viewModel : HomeViewModel = hiltViewModel()
                 HomeScreen(
+                    viewModel = viewModel,
                         onScheduleVisitClick = { navController.navigate(Screen.CreateVisit.route) },
                         onVisitClick = { visit ->
                             if (canViewClients) {
