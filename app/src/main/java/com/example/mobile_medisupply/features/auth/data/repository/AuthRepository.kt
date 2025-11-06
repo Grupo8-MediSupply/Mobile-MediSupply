@@ -4,6 +4,8 @@ import android.util.Base64
 import android.util.Log
 import com.example.mobile_medisupply.features.auth.data.local.SessionManager
 import com.example.mobile_medisupply.features.auth.data.remote.AuthApi
+import com.example.mobile_medisupply.features.auth.data.remote.CrearClienteRequest
+import com.example.mobile_medisupply.features.auth.data.remote.CrearClienteResult
 import com.example.mobile_medisupply.features.auth.data.remote.LoginRequest
 import com.example.mobile_medisupply.features.auth.domain.model.Region
 import com.example.mobile_medisupply.features.auth.domain.model.UserRole
@@ -63,6 +65,41 @@ constructor(
             emit(Result.failure(handledException))
         }
     }
+
+    suspend fun registrarCliente(request: CrearClienteRequest): Flow<Result<CrearClienteResult>> = flow {
+        try {
+            val response = authApi.registrarCliente(request)
+
+            if (response.success) {
+                val result = response.result
+                    ?: throw LoginException(
+                        type = LoginErrorType.UNKNOWN,
+                        message = "Respuesta del servidor inválida."
+                    )
+                emit(Result.success(result))
+            } else {
+                val message = response.message?.takeIf { it.isNotBlank() }
+                    ?: "No se pudo registrar el cliente. Verifica los datos ingresados."
+                emit(Result.failure(LoginException(LoginErrorType.INVALID_CREDENTIALS, message)))
+            }
+        } catch (e: Exception) {
+            val handledException = when (e) {
+                is LoginException -> e
+                is IOException -> LoginException(
+                    type = LoginErrorType.NETWORK,
+                    message = "No pudimos conectar con el servidor. Revisa tu conexión.",
+                    cause = e
+                )
+                else -> LoginException(
+                    type = LoginErrorType.UNKNOWN,
+                    message = "Ocurrió un error al registrar el cliente.",
+                    cause = e
+                )
+            }
+            emit(Result.failure(handledException))
+        }
+    }
+
 
     fun getSession(): UserSession? = sessionManager.getSession()
 

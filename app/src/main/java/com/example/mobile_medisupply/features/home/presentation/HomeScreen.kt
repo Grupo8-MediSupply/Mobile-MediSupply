@@ -28,6 +28,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -42,12 +45,16 @@ import com.example.mobile_medisupply.features.home.domain.model.ScheduledVisit
 import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
 @Composable
 fun HomeScreen(
-        visits: List<ScheduledVisit> =
-                ScheduledVisitsRepositoryProvider.repository.getScheduledVisits(),
+        viewModel: HomeViewModel,
         onScheduleVisitClick: () -> Unit = {},
         onVisitClick: (ScheduledVisit) -> Unit = {},
         modifier: Modifier = Modifier
 ) {
+    val visits by viewModel.visits.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadVisits()
+    }
     Surface(
             modifier = modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.surface
@@ -231,8 +238,3 @@ private fun EmptyState() {
     }
 }
 
-@Preview(showBackground = true, widthDp = 360)
-@Composable
-private fun HomeScreenPreview() {
-    MobileMediSupplyTheme { HomeScreen() }
-}
