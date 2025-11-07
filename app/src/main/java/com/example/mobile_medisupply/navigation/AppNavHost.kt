@@ -1,14 +1,21 @@
 package com.example.mobile_medisupply.navigation
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,12 +44,15 @@ import com.example.mobile_medisupply.features.clients.presentation.VisitDetailVi
 import com.example.mobile_medisupply.features.home.presentation.CreateVisitScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeViewModel
-import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
 import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
+import com.example.mobile_medisupply.features.orders.data.remote.OrderCreatedResult
 import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrderSummaryScreen
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
+import com.example.mobile_medisupply.features.orders.presentation.ProductCatalogViewModel
+import com.example.mobile_medisupply.features.orders.presentation.ProductDetailViewModel
+import com.example.mobile_medisupply.features.orders.presentation.CreateOrderViewModel
 
 @Composable
 fun AppNavHost(
@@ -54,7 +64,8 @@ fun AppNavHost(
         config: AppConfig?,
         modifier: Modifier = Modifier
 ) {
-    val orderSelections = remember { mutableStateMapOf<String, Int>() }
+    val orderSelections = remember { mutableStateMapOf<String, OrderSummaryItem>() }
+    val lastOrderResult = remember { mutableStateOf<OrderCreatedResult?>(null) }
 
     NavHost(
             navController = navController,
@@ -103,7 +114,10 @@ fun AppNavHost(
                         onVisitClick = { visit ->
                             if (canViewClients) {
                                 navController.navigate(
-                                        Screen.VisitDetail.createRoute(visit.id)
+                                        Screen.VisitDetail.createRoute(
+                                                visit.clientId,
+                                                visit.id
+                                        )
                                 )
                             }
                         }
@@ -167,16 +181,34 @@ fun AppNavHost(
         }
 
         composable(Screen.CreateOrder.route) {
+            val catalogViewModel: ProductCatalogViewModel = hiltViewModel()
+            val catalogState by catalogViewModel.uiState.collectAsState()
+            val createOrderViewModel: CreateOrderViewModel = hiltViewModel()
+            val orderState by createOrderViewModel.uiState.collectAsState()
+
+            LaunchedEffect(orderState.orderResult) {
+                val result = orderState.orderResult
+                if (result != null) {
+                    lastOrderResult.value = result
+                    createOrderViewModel.clearOrderResult()
+                    navController.navigate(Screen.OrderSummary.route)
+                }
+            }
+
             CreateOrderScreen(
                     userRole = session?.role ?: UserRole.VENDEDOR,
                     sessionClientId = session?.userId,
                     selections = orderSelections,
+                    catalogState = catalogState,
+                    orderState = orderState,
+                    onRefreshCatalog = { catalogViewModel.loadCatalog() },
                     onBackClick = { navController.navigateUp() },
-                    onOrderSubmit = {
-                        navController.navigate(Screen.OrderSummary.route)
+                    onSubmitOrder = { clientId, items ->
+                        createOrderViewModel.submitOrder(clientId, items)
                     },
-                    onProductDetail = { product ->
-                        navController.navigate(Screen.ProductDetail.createRoute(product.id))
+                    onDismissError = { createOrderViewModel.clearError() },
+                    onProductDetail = { productId ->
+                        navController.navigate(Screen.ProductDetail.createRoute(productId))
                     }
             )
         }
@@ -186,8 +218,8 @@ fun AppNavHost(
                 arguments = listOf(navArgument("productId") { type = NavType.StringType })
         ) { backStackEntry ->
             val productId = backStackEntry.arguments?.getString("productId")
-            val product = productId?.let { ProductCatalogRepositoryProvider.repository.getProductById(it) }
-            if (product == null) {
+            val viewModel: ProductDetailViewModel = hiltViewModel()
+            if (productId == null) {
                 Surface {
                     Text(
                             text = "No encontramos la información del producto.",
@@ -199,41 +231,79 @@ fun AppNavHost(
                     )
                 }
             } else {
-                ProductDetailScreen(
-                        product = product,
-                        currentQuantity = orderSelections[product.id] ?: 0,
-                        onBackClick = { navController.navigateUp() },
-                        onQuantityConfirmed = { quantity ->
-                            if (quantity <= 0) {
-                                orderSelections.remove(product.id)
-                            } else {
-                                orderSelections[product.id] = quantity
-                            }
-                            navController.navigateUp()
+                LaunchedEffect(productId) { viewModel.loadProduct(productId) }
+                val detailState by viewModel.uiState.collectAsState()
+                when {
+                    detailState.isLoading -> {
+                        Surface {
+                            CircularProgressIndicator(
+                                    modifier =
+                                            Modifier.fillMaxSize()
+                                                    .wrapContentSize(Alignment.Center)
+                            )
                         }
-                )
+                    }
+                    detailState.error != null -> {
+                        val errorMessage = detailState.error ?: ""
+                        Surface {
+                            Column(
+                                    modifier =
+                                            Modifier.fillMaxSize()
+                                                    .padding(horizontal = 24.dp)
+                                                    .wrapContentSize(Alignment.Center),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                        text = errorMessage,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        textAlign = TextAlign.Center
+                                )
+                                TextButton(onClick = { viewModel.loadProduct(productId) }) {
+                                    Text("Reintentar")
+                                }
+                            }
+                        }
+                    }
+                    detailState.product != null -> {
+                        val product = detailState.product ?: return@composable
+                        ProductDetailScreen(
+                                product = product,
+                                currentQuantity = orderSelections[product.id]?.quantity ?: 0,
+                                onBackClick = { navController.navigateUp() },
+                                onQuantityConfirmed = { quantity, warehouseId, warehouseName, lotId, lotLabel ->
+                                    if (quantity <= 0) {
+                                        orderSelections.remove(product.id)
+                                    } else {
+                                        orderSelections[product.id] =
+                                                OrderSummaryItem(
+                                                        productId = product.id,
+                                                        name = product.name,
+                                                        quantity = quantity,
+                                                        unitPrice = product.pricing.price,
+                                                        currency = product.pricing.currency,
+                                                        warehouseId = warehouseId,
+                                                        warehouseName = warehouseName,
+                                                        lotId = lotId,
+                                                        lotName = lotLabel
+                                                )
+                                    }
+                                    navController.navigateUp()
+                                }
+                        )
+                    }
+                }
             }
         }
 
         composable(Screen.OrderSummary.route) {
-            val summaryItems =
-                    orderSelections.mapNotNull { (productId, quantity) ->
-                        val product = ProductCatalogRepositoryProvider.repository.getProductById(productId)
-                        if (product != null && quantity > 0) {
-                            OrderSummaryItem(
-                                    productId = product.id,
-                                    name = product.name,
-                                    quantity = quantity,
-                                    unitPrice = product.pricing.price,
-                                    currency = product.pricing.currency
-                            )
-                        } else null
-                    }
+            val summaryItems = orderSelections.values.filter { it.quantity > 0 }
             val currencyCode = summaryItems.firstOrNull()?.currency ?: "COP"
             val totalAmount = summaryItems.sumOf { it.lineTotal }
+            val orderResult = lastOrderResult.value
             OrderSummaryScreen(
-                    orderId = "777777",
-                    status = "Procesando",
+                    orderId = orderResult?.id ?: "Orden pendiente",
+                    status = orderResult?.estado ?: "En progreso",
                     totalAmountFormatted =
                             if (summaryItems.isEmpty()) "-" else formatCurrency(currencyCode, totalAmount),
                     items = summaryItems,
@@ -293,9 +363,14 @@ fun AppNavHost(
                             clientDetail = detail,
                             onBackClick = { navController.navigateUp() },
                             onVisitSelected = { visit ->
-                                navController.navigate(
-                                        Screen.VisitDetail.createRoute( visit.id)
-                                )
+                                clientId?.let {
+                                    navController.navigate(
+                                            Screen.VisitDetail.createRoute(
+                                                    it,
+                                                    visit.id
+                                            )
+                                    )
+                                }
                             }
                     )
                 } else {
@@ -316,7 +391,12 @@ fun AppNavHost(
                 route = Screen.VisitDetail.route,
                 arguments =
                         listOf(
-                                navArgument("visitId") { type = NavType.StringType }
+                                navArgument(Screen.VisitDetail.CLIENT_ID_ARG) {
+                                    type = NavType.StringType
+                                },
+                                navArgument(Screen.VisitDetail.VISIT_ID_ARG) {
+                                    type = NavType.StringType
+                                }
                         )
         ) { backStackEntry ->
             if (!canViewClients) {
@@ -332,25 +412,17 @@ fun AppNavHost(
                     )
                 }
             } else {
-                val clientId = "clinica-san-rafael"
-                val visitId = backStackEntry.arguments?.getString("visitId")
-                val clientDetail =
-                        clientId?.let { ClientRepositoryProvider.repository.getClientDetail(it) }
+                val clientId =
+                        backStackEntry.arguments?.getString(Screen.VisitDetail.CLIENT_ID_ARG)
+                val visitId =
+                        backStackEntry.arguments?.getString(Screen.VisitDetail.VISIT_ID_ARG)
                 val viewModel: VisitDetailViewModel = hiltViewModel()
-                val visitDetail =
-                        if (clientId != null && visitId != null) {
-                            ClientRepositoryProvider.repository.getClientVisitDetail(
-                                    clientId,
-                                    visitId
-                            )
-                        } else null
-                if (visitId != null) {
+                if (clientId != null && visitId != null) {
                     VisitDetailScreen(
                             visitId = visitId,
-                            visitDetail = visitDetail!!,
                             onBackClick = { navController.navigateUp() },
                             onSaveClick = { _, _ -> navController.navigateUp() },
-                        viewModel = viewModel
+                            viewModel = viewModel
                     )
                 } else {
                     Surface {

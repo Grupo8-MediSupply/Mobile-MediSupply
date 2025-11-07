@@ -11,8 +11,8 @@ interface ProductApi {
     @POST("ordenes/porVendedor/{clienteId}")
     suspend fun crearPedidoDesdeVendedor(
         @Path("clienteId") clienteId: String,
-        @Body request: List<ProductItemRequest>
-    ): ApiResponse<ApiResponse<ProductCreted>>
+        @Body request: CreateOrderRequest
+    ): ApiResponse<OrderCreatedResult>
 
     @GET("producto/ObtenerProductos")
     suspend fun obtenerProductos(): ApiResponse<List<ProductDto>>
@@ -20,12 +20,16 @@ interface ProductApi {
     @GET("producto/{productId}")
     suspend fun obtenerDetalleProducto(
         @Path("productId") productId: String
-    ): ProductDetailResult
+    ): ApiResponse<ProductDetailResult>
 }
 
-data class ProductCreted(
+data class OrderCreatedResult(
     val id: String,
     val estado: String
+)
+
+data class CreateOrderRequest(
+    val productos: List<ProductItemRequest>
 )
 
 data class ProductItemRequest(
@@ -47,9 +51,9 @@ data class ProductDetailResult(
     val producto_info: ProductInfo,
     val tipo: String,
     val precio: Double,
-    val proveedor: Supplier,
-    val productoPaisId: String,
-    val bodegas: List<Warehouse>
+    val proveedor: Supplier?,
+    val productoPaisId: String?,
+    val bodegas: List<Warehouse>?
 )
 
 data class ProductInfo(
@@ -59,7 +63,11 @@ data class ProductInfo(
     val sku: String,
     val nombre: String,
     val descripcion: String,
-    val concentracion: String
+    val concentracion: String? = null,
+    val marca: String? = null,
+    val modelo: String? = null,
+    val material: String? = null,
+    val esteril: Boolean? = null
 )
 
 data class Supplier(
@@ -71,7 +79,7 @@ data class Supplier(
 data class Warehouse(
     val bodegaId: String,
     val bodegaNombre: String,
-    val lotes: List<Batch>
+    val lotes: List<Batch>?
 )
 
 data class Batch(

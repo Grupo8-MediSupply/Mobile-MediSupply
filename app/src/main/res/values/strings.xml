@@ -69,6 +69,7 @@
     
     <!-- Visit Detail Screen -->
     <string name="visit_detail_status_date">%1$s - %2$s</string>
+    <string name="visit_detail_unknown_client">Detalle de la visita</string>
     <string name="visit_detail_comments">Comentarios</string>
     <string name="visit_detail_comments_placeholder">Agrega notas relevantes de la visita</string>
     <string name="visit_detail_video_section">Seguimiento en video</string>
@@ -91,6 +92,7 @@
     <string name="visit_detail_video_duration_error">No fue posible leer la duración del video. Intenta nuevamente.</string>
     <string name="visit_detail_video_duration_limit">El video supera el límite de 60 segundos.</string>
     <string name="visit_detail_video_default_name">Video de visita</string>
+    <string name="visit_detail_not_found">No encontramos la información de la visita.</string>
     <!-- Profile & Logout -->
     <string name="profile">Perfil</string>
     <string name="logout">Cerrar sesión</string>
