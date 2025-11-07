@@ -33,6 +33,7 @@ import com.example.mobile_medisupply.features.clients.presentation.ClientDetailS
 import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsViewModel
 import com.example.mobile_medisupply.features.clients.presentation.VisitDetailScreen
+import com.example.mobile_medisupply.features.clients.presentation.VisitDetailViewModel
 import com.example.mobile_medisupply.features.home.presentation.CreateVisitScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeViewModel
@@ -102,7 +103,7 @@ fun AppNavHost(
                         onVisitClick = { visit ->
                             if (canViewClients) {
                                 navController.navigate(
-                                        Screen.ClientDetail.createRoute(visit.clientId)
+                                        Screen.VisitDetail.createRoute(visit.id)
                                 )
                             }
                         }
@@ -293,7 +294,7 @@ fun AppNavHost(
                             onBackClick = { navController.navigateUp() },
                             onVisitSelected = { visit ->
                                 navController.navigate(
-                                        Screen.VisitDetail.createRoute(detail.id, visit.id)
+                                        Screen.VisitDetail.createRoute( visit.id)
                                 )
                             }
                     )
@@ -315,7 +316,6 @@ fun AppNavHost(
                 route = Screen.VisitDetail.route,
                 arguments =
                         listOf(
-                                navArgument("clientId") { type = NavType.StringType },
                                 navArgument("visitId") { type = NavType.StringType }
                         )
         ) { backStackEntry ->
@@ -332,10 +332,11 @@ fun AppNavHost(
                     )
                 }
             } else {
-                val clientId = backStackEntry.arguments?.getString("clientId")
+                val clientId = "clinica-san-rafael"
                 val visitId = backStackEntry.arguments?.getString("visitId")
                 val clientDetail =
                         clientId?.let { ClientRepositoryProvider.repository.getClientDetail(it) }
+                val viewModel: VisitDetailViewModel = hiltViewModel()
                 val visitDetail =
                         if (clientId != null && visitId != null) {
                             ClientRepositoryProvider.repository.getClientVisitDetail(
@@ -343,12 +344,13 @@ fun AppNavHost(
                                     visitId
                             )
                         } else null
-                if (clientDetail != null && visitDetail != null) {
+                if (visitId != null) {
                     VisitDetailScreen(
-                            clientName = clientDetail.name,
-                            visitDetail = visitDetail,
+                            visitId = visitId,
+                            visitDetail = visitDetail!!,
                             onBackClick = { navController.navigateUp() },
-                            onSaveClick = { _, _ -> navController.navigateUp() }
+                            onSaveClick = { _, _ -> navController.navigateUp() },
+                        viewModel = viewModel
                     )
                 } else {
                     Surface {

@@ -68,7 +68,7 @@ class FakeClientRepository : ClientRepository {
                                             status = ClientVisitStatus.EN_CURSO
                                     ),
                                     ClientVisitSummary(
-                                            id = "visit-1003",
+                                            id = "4217f1a5-acca-4e50-81c7-50b9a11a3697",
                                             title = "Visita 3",
                                             scheduledDate = "04/19/2024",
                                             status = ClientVisitStatus.FINALIZADA
