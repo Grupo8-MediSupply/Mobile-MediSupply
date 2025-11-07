@@ -176,6 +176,12 @@ private fun OrderItemRow(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            Text(
+                    text =
+                            "Bodega: ${item.warehouseName} • Lote: ${item.lotName ?: item.lotId}",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Icon(
                 imageVector = Icons.Outlined.ChevronRight,

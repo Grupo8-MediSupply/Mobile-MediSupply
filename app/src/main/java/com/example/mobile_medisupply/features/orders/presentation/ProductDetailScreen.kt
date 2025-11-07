@@ -1,6 +1,7 @@
 package com.example.mobile_medisupply.features.orders.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,12 +12,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,15 +41,31 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.mobile_medisupply.features.orders.domain.model.ProductCatalogItem
+import com.example.mobile_medisupply.features.orders.domain.model.ProductWarehouse
 
 @Composable
 fun ProductDetailScreen(
         product: ProductCatalogItem,
         currentQuantity: Int,
         onBackClick: () -> Unit,
-        onQuantityConfirmed: (Int) -> Unit
+        onQuantityConfirmed: (
+                quantity: Int,
+                warehouseId: String,
+                warehouseName: String,
+                lotId: String,
+                lotLabel: String?
+        ) -> Unit
 ) {
     var quantity by remember(product.id) { mutableStateOf(currentQuantity.coerceAtLeast(0)) }
+    val warehouseOptions = product.warehouses
+    var selectedWarehouseId by remember(product.id) { mutableStateOf(warehouseOptions.firstOrNull()?.id) }
+    val selectedWarehouse = warehouseOptions.firstOrNull { it.id == selectedWarehouseId }
+    var selectedLotId by remember(selectedWarehouseId) {
+        mutableStateOf(selectedWarehouse?.batches?.firstOrNull()?.id)
+    }
+    val selectedLot = selectedWarehouse?.batches?.firstOrNull { it.id == selectedLotId }
+    val maxQuantity = selectedLot?.quantity ?: 0
+    val scrollState = rememberScrollState()
 
     Surface(
             modifier = Modifier.fillMaxSize(),
@@ -57,7 +79,10 @@ fun ProductDetailScreen(
             DetailHeader(productName = product.name, onBackClick = onBackClick)
 
             Column(
-                    modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)
+                    modifier =
+                            Modifier.fillMaxSize()
+                                    .verticalScroll(scrollState)
+                                    .padding(horizontal = 16.dp)
             ) {
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -69,16 +94,50 @@ fun ProductDetailScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
+                StockSelectorCard(
+                        warehouses = warehouseOptions,
+                        selectedWarehouseId = selectedWarehouseId,
+                        onWarehouseSelected = { id ->
+                            selectedWarehouseId = id
+                            val warehouse = warehouseOptions.firstOrNull { it.id == id }
+                            selectedLotId = warehouse?.batches?.firstOrNull()?.id
+                            quantity = 0
+                        },
+                        selectedLotId = selectedLotId,
+                        onLotSelected = { lotId ->
+                            selectedLotId = lotId
+                            quantity = 0
+                        }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
                 PricingCard(product)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 QuantitySection(
                         quantity = quantity,
-                        onIncrement = { quantity += 1 },
-                        onDecrement = { quantity = (quantity - 1).coerceAtLeast(0) }
+                        maxQuantity = maxQuantity,
+                        onIncrement = {
+                            if (selectedLot != null && quantity < maxQuantity) {
+                                quantity += 1
+                            }
+                        },
+                        onDecrement = { quantity = (quantity - 1).coerceAtLeast(0) },
+                        canConfirm = selectedLot != null && selectedWarehouse != null && quantity in 1..maxQuantity
                 ) {
-                    onQuantityConfirmed(quantity)
+                    val warehouse = selectedWarehouse
+                    val lot = selectedLot
+                    if (warehouse != null && lot != null && quantity in 1..maxQuantity) {
+                        onQuantityConfirmed(
+                                quantity,
+                                warehouse.id,
+                                warehouse.name,
+                                lot.id,
+                                lot.id
+                        )
+                    }
                 }
             }
         }
@@ -198,6 +257,95 @@ private fun InventoryCard(product: ProductCatalogItem) {
 }
 
 @Composable
+private fun StockSelectorCard(
+        warehouses: List<ProductWarehouse>,
+        selectedWarehouseId: String?,
+        onWarehouseSelected: (String) -> Unit,
+        selectedLotId: String?,
+        onLotSelected: (String) -> Unit
+) {
+    Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors =
+                    CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                    ),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Text(
+                    text = "Selecciona inventario",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSurface
+            )
+
+            if (warehouses.isEmpty()) {
+                Text(
+                        text = "Este producto no cuenta con stock disponible.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                var warehouseExpanded by remember { mutableStateOf(false) }
+                val currentWarehouse = warehouses.firstOrNull { it.id == selectedWarehouseId } ?: warehouses.first()
+                var lotExpanded by remember(currentWarehouse.id) { mutableStateOf(false) }
+                val lots = currentWarehouse.batches
+                val currentLot =
+                        lots.firstOrNull { it.id == selectedLotId }
+                                ?: lots.firstOrNull()
+
+                Box {
+                    SelectorField(
+                            label = "Bodega",
+                            value = currentWarehouse.name,
+                            onClick = { warehouseExpanded = true }
+                    )
+                    DropdownMenu(expanded = warehouseExpanded, onDismissRequest = { warehouseExpanded = false }) {
+                        warehouses.forEach { warehouse ->
+                            DropdownMenuItem(
+                                    text = { Text(warehouse.name) },
+                                    onClick = {
+                                        warehouseExpanded = false
+                                        onWarehouseSelected(warehouse.id)
+                                        lotExpanded = false
+                                    }
+                            )
+                        }
+                    }
+                }
+
+                Box {
+                    SelectorField(
+                            label = "Lote",
+                            value = currentLot?.id ?: "Sin lotes",
+                            enabled = lots.isNotEmpty(),
+                            onClick = { if (lots.isNotEmpty()) lotExpanded = true }
+                    )
+                    DropdownMenu(expanded = lotExpanded, onDismissRequest = { lotExpanded = false }) {
+                        lots.forEach { lot ->
+                            DropdownMenuItem(
+                                    text = { Text("${lot.id} • ${lot.quantity} u") },
+                                    onClick = {
+                                        lotExpanded = false
+                                        onLotSelected(lot.id)
+                                    }
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                        text = "Disponible en lote: ${currentLot?.quantity ?: 0} unidades",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+
+@Composable
 private fun PricingCard(product: ProductCatalogItem) {
     Card(
             modifier = Modifier.fillMaxWidth(),
@@ -233,8 +381,10 @@ private fun PricingCard(product: ProductCatalogItem) {
 @Composable
 private fun QuantitySection(
         quantity: Int,
+        maxQuantity: Int,
         onIncrement: () -> Unit,
         onDecrement: () -> Unit,
+        canConfirm: Boolean,
         onConfirm: () -> Unit
 ) {
     Row(
@@ -242,7 +392,7 @@ private fun QuantitySection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Button(onClick = onConfirm) {
+        Button(onClick = onConfirm, enabled = canConfirm) {
             Text("Agregar")
         }
 
@@ -253,9 +403,19 @@ private fun QuantitySection(
                     style = MaterialTheme.typography.headlineSmall,
                     color = MaterialTheme.colorScheme.onSurface
             )
-            QuantityButton(symbol = "+", onClick = onIncrement)
+            val incrementEnabled = maxQuantity > 0 && quantity < maxQuantity
+            QuantityButton(symbol = "+", enabled = incrementEnabled, onClick = onIncrement)
         }
     }
+    val availabilityText =
+            if (maxQuantity > 0) "Máximo disponible: $maxQuantity"
+            else "Sin stock disponible para el lote seleccionado"
+    Text(
+            text = availabilityText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 8.dp)
+    )
 }
 
 @Composable
@@ -299,5 +459,50 @@ private fun DetailRow(label: String, value: String) {
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
         )
+    }
+}
+
+@Composable
+private fun SelectorField(
+        label: String,
+        value: String,
+        enabled: Boolean = true,
+        onClick: () -> Unit
+) {
+    Column {
+        Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Surface(
+                modifier =
+                        Modifier.fillMaxWidth()
+                                .padding(top = 4.dp)
+                                .clip(MaterialTheme.shapes.medium)
+                                .clickable(enabled = enabled, onClick = onClick),
+                color =
+                        if (enabled) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                        else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+        ) {
+            Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                        text = value,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                )
+                Icon(
+                        imageVector = Icons.Outlined.ChevronRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
     }
 }

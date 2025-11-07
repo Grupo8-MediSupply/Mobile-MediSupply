@@ -11,8 +11,8 @@ interface ProductApi {
     @POST("ordenes/porVendedor/{clienteId}")
     suspend fun crearPedidoDesdeVendedor(
         @Path("clienteId") clienteId: String,
-        @Body request: List<ProductItemRequest>
-    ): ApiResponse<ApiResponse<ProductCreted>>
+        @Body request: CreateOrderRequest
+    ): ApiResponse<OrderCreatedResult>
 
     @GET("producto/ObtenerProductos")
     suspend fun obtenerProductos(): ApiResponse<List<ProductDto>>
@@ -23,9 +23,13 @@ interface ProductApi {
     ): ApiResponse<ProductDetailResult>
 }
 
-data class ProductCreted(
+data class OrderCreatedResult(
     val id: String,
     val estado: String
+)
+
+data class CreateOrderRequest(
+    val productos: List<ProductItemRequest>
 )
 
 data class ProductItemRequest(

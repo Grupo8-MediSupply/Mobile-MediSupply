@@ -20,6 +20,7 @@ class FakeProductCatalogRepository : ProductCatalogRepository {
                             provider = "FarmaLatam",
                             country = "CO",
                             guidelineLabel = "Normativa",
+                            warehouses = emptyList(),
                             inventory =
                                     ProductInventory(
                                             total = 320,
@@ -45,6 +46,7 @@ class FakeProductCatalogRepository : ProductCatalogRepository {
                             provider = "Salud Pharma",
                             country = "CO",
                             guidelineLabel = null,
+                            warehouses = emptyList(),
                             inventory =
                                     ProductInventory(
                                             total = 540,
@@ -70,6 +72,7 @@ class FakeProductCatalogRepository : ProductCatalogRepository {
                             provider = "Hospitech",
                             country = "CO",
                             guidelineLabel = "Ficha técnica",
+                            warehouses = emptyList(),
                             inventory =
                                     ProductInventory(
                                             total = 620,
@@ -95,6 +98,7 @@ class FakeProductCatalogRepository : ProductCatalogRepository {
                             provider = "MediTools",
                             country = "CO",
                             guidelineLabel = null,
+                            warehouses = emptyList(),
                             inventory =
                                     ProductInventory(
                                             total = 920,
@@ -120,6 +124,7 @@ class FakeProductCatalogRepository : ProductCatalogRepository {
                             provider = "SafeHands",
                             country = "CO",
                             guidelineLabel = "Certificación",
+                            warehouses = emptyList(),
                             inventory =
                                     ProductInventory(
                                             total = 410,

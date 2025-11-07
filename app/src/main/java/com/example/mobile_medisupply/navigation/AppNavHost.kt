@@ -15,6 +15,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,12 +45,14 @@ import com.example.mobile_medisupply.features.home.presentation.CreateVisitScree
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeViewModel
 import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
+import com.example.mobile_medisupply.features.orders.data.remote.OrderCreatedResult
 import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrderSummaryScreen
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
 import com.example.mobile_medisupply.features.orders.presentation.ProductCatalogViewModel
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailViewModel
+import com.example.mobile_medisupply.features.orders.presentation.CreateOrderViewModel
 
 @Composable
 fun AppNavHost(
@@ -62,6 +65,7 @@ fun AppNavHost(
         modifier: Modifier = Modifier
 ) {
     val orderSelections = remember { mutableStateMapOf<String, OrderSummaryItem>() }
+    val lastOrderResult = remember { mutableStateOf<OrderCreatedResult?>(null) }
 
     NavHost(
             navController = navController,
@@ -179,18 +183,30 @@ fun AppNavHost(
         composable(Screen.CreateOrder.route) {
             val catalogViewModel: ProductCatalogViewModel = hiltViewModel()
             val catalogState by catalogViewModel.uiState.collectAsState()
+            val createOrderViewModel: CreateOrderViewModel = hiltViewModel()
+            val orderState by createOrderViewModel.uiState.collectAsState()
+
+            LaunchedEffect(orderState.orderResult) {
+                val result = orderState.orderResult
+                if (result != null) {
+                    lastOrderResult.value = result
+                    createOrderViewModel.clearOrderResult()
+                    navController.navigate(Screen.OrderSummary.route)
+                }
+            }
+
             CreateOrderScreen(
                     userRole = session?.role ?: UserRole.VENDEDOR,
                     sessionClientId = session?.userId,
                     selections = orderSelections,
                     catalogState = catalogState,
+                    orderState = orderState,
                     onRefreshCatalog = { catalogViewModel.loadCatalog() },
                     onBackClick = { navController.navigateUp() },
-                    onOrderSubmit = { selectionsSnapshot ->
-                        if (selectionsSnapshot.isNotEmpty()) {
-                            navController.navigate(Screen.OrderSummary.route)
-                        }
+                    onSubmitOrder = { clientId, items ->
+                        createOrderViewModel.submitOrder(clientId, items)
                     },
+                    onDismissError = { createOrderViewModel.clearError() },
                     onProductDetail = { productId ->
                         navController.navigate(Screen.ProductDetail.createRoute(productId))
                     }
@@ -255,7 +271,7 @@ fun AppNavHost(
                                 product = product,
                                 currentQuantity = orderSelections[product.id]?.quantity ?: 0,
                                 onBackClick = { navController.navigateUp() },
-                                onQuantityConfirmed = { quantity ->
+                                onQuantityConfirmed = { quantity, warehouseId, warehouseName, lotId, lotLabel ->
                                     if (quantity <= 0) {
                                         orderSelections.remove(product.id)
                                     } else {
@@ -265,7 +281,11 @@ fun AppNavHost(
                                                         name = product.name,
                                                         quantity = quantity,
                                                         unitPrice = product.pricing.price,
-                                                        currency = product.pricing.currency
+                                                        currency = product.pricing.currency,
+                                                        warehouseId = warehouseId,
+                                                        warehouseName = warehouseName,
+                                                        lotId = lotId,
+                                                        lotName = lotLabel
                                                 )
                                     }
                                     navController.navigateUp()
@@ -280,9 +300,10 @@ fun AppNavHost(
             val summaryItems = orderSelections.values.filter { it.quantity > 0 }
             val currencyCode = summaryItems.firstOrNull()?.currency ?: "COP"
             val totalAmount = summaryItems.sumOf { it.lineTotal }
+            val orderResult = lastOrderResult.value
             OrderSummaryScreen(
-                    orderId = "777777",
-                    status = "Procesando",
+                    orderId = orderResult?.id ?: "Orden pendiente",
+                    status = orderResult?.estado ?: "En progreso",
                     totalAmountFormatted =
                             if (summaryItems.isEmpty()) "-" else formatCurrency(currencyCode, totalAmount),
                     items = summaryItems,

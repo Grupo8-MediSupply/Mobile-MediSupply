@@ -64,6 +64,7 @@ import com.example.mobile_medisupply.features.clients.domain.model.ClientSummary
 import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
 import com.example.mobile_medisupply.features.orders.domain.model.ProductSummary
 import com.example.mobile_medisupply.features.orders.presentation.ProductCatalogUiState
+import com.example.mobile_medisupply.features.orders.presentation.CreateOrderUiState
 
 @Composable
 fun CreateOrderScreen(
@@ -71,9 +72,11 @@ fun CreateOrderScreen(
         sessionClientId: String?,
         selections: Map<String, OrderSummaryItem>,
         catalogState: ProductCatalogUiState,
+        orderState: CreateOrderUiState,
         onRefreshCatalog: () -> Unit,
         onBackClick: () -> Unit,
-        onOrderSubmit: (Map<String, OrderSummaryItem>) -> Unit = {},
+        onSubmitOrder: (String, List<OrderSummaryItem>) -> Unit = { _, _ -> },
+        onDismissError: () -> Unit = {},
         onProductDetail: (String) -> Unit = {}
 ) {
     val catalog = catalogState.products
@@ -125,8 +128,11 @@ fun CreateOrderScreen(
         }
     }
 
-    val totalUnits = selections.values.sumOf { it.quantity }
-    val totalProducts = selections.values.count { it.quantity > 0 }
+    val selectionList = selections.values.filter { it.quantity > 0 }
+    val totalUnits = selectionList.sumOf { it.quantity }
+    val totalProducts = selectionList.size
+    val clientIdForOrder = resolveClientIdForOrder(userRole, sessionClientId, selectedClient)
+    val canSubmitOrder = clientIdForOrder != null && selectionList.isNotEmpty()
 
     Surface(
             modifier = Modifier.fillMaxSize(),
@@ -138,6 +144,9 @@ fun CreateOrderScreen(
                                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.25f))
         ) {
             HeaderSection(onBackClick = onBackClick)
+            orderState.errorMessage?.let {
+                ErrorBanner(message = it, onDismiss = onDismissError)
+            }
 
             LazyColumn(
                     modifier =
@@ -204,7 +213,16 @@ fun CreateOrderScreen(
             OrderFooter(
                     totalProducts = totalProducts,
                     totalUnits = totalUnits,
-                    onSubmitClick = { onOrderSubmit(selections) },
+                    canSubmit = canSubmitOrder,
+                    isSubmitting = orderState.isSubmitting,
+                    onSubmitClick = {
+                        val clientId = clientIdForOrder
+                        if (clientId != null) {
+                            onSubmitOrder(clientId, selectionList)
+                        } else {
+                            onDismissError()
+                        }
+                    },
                     modifier = Modifier.align(Alignment.CenterHorizontally)
             )
         }
@@ -331,6 +349,27 @@ private fun ClientSelector(
             }
         }
     }
+}
+
+private val CLIENT_ID_OVERRIDES =
+        mapOf(
+                "clinica-san-rafael" to "7a89b952-aa5b-4f16-95d5-30e845111c9f"
+        )
+
+private fun resolveClientIdForOrder(
+        userRole: UserRole,
+        sessionClientId: String?,
+        selectedClient: ClientSummary?
+): String? {
+    val rawId =
+            when (userRole) {
+                UserRole.CLIENTE -> sessionClientId ?: selectedClient?.id
+                else -> selectedClient?.id
+            } ?: return null
+    if (rawId.matches(Regex("^[0-9a-fA-F-]{8}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{4}-[0-9a-fA-F-]{12}\$"))) {
+        return rawId
+    }
+    return CLIENT_ID_OVERRIDES[rawId] ?: rawId
 }
 
 @Composable
@@ -580,9 +619,40 @@ private fun CatalogErrorState(message: String, onRetry: () -> Unit) {
 }
 
 @Composable
+private fun ErrorBanner(message: String, onDismiss: () -> Unit) {
+    Surface(
+            modifier =
+                    Modifier.fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+            color = MaterialTheme.colorScheme.errorContainer,
+            shape = MaterialTheme.shapes.medium
+    ) {
+        Row(
+                modifier = Modifier.fillMaxWidth().padding(12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.weight(1f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+            )
+            TextButton(onClick = onDismiss) {
+                Text(text = "Cerrar")
+            }
+        }
+    }
+}
+
+@Composable
 private fun OrderFooter(
         totalProducts: Int,
         totalUnits: Int,
+        canSubmit: Boolean,
+        isSubmitting: Boolean,
         onSubmitClick: () -> Unit,
         modifier: Modifier = Modifier
 ) {
@@ -623,14 +693,31 @@ private fun OrderFooter(
                 }
             }
 
+            if (!canSubmit) {
+                Text(
+                        text = "Selecciona un cliente y agrega productos para continuar.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
             Spacer(modifier = Modifier.height(12.dp))
 
             Button(
                     onClick = onSubmitClick,
-                    enabled = totalUnits > 0,
+                    enabled = canSubmit && !isSubmitting,
                     modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Ordenar")
+                if (isSubmitting) {
+                    CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text("Crear orden")
+                }
             }
         }
     }

@@ -6,6 +6,8 @@ import com.example.mobile_medisupply.features.orders.domain.model.ProductCatalog
 import com.example.mobile_medisupply.features.orders.domain.model.ProductInventory
 import com.example.mobile_medisupply.features.orders.domain.model.ProductPricing
 import com.example.mobile_medisupply.features.orders.domain.model.ProductSummary
+import com.example.mobile_medisupply.features.orders.domain.model.ProductWarehouse
+import com.example.mobile_medisupply.features.orders.domain.model.ProductBatch
 import java.text.NumberFormat
 import java.time.Instant
 import java.time.ZoneId
@@ -29,15 +31,26 @@ fun ProductDto.toSummary(): ProductSummary {
     )
 }
 
+private fun com.example.mobile_medisupply.features.orders.data.remote.Batch.toDomain(): ProductBatch =
+        ProductBatch(id = loteId, quantity = cantidad)
+
+private fun com.example.mobile_medisupply.features.orders.data.remote.Warehouse.toDomain(): ProductWarehouse =
+        ProductWarehouse(
+                id = bodegaId,
+                name = bodegaNombre,
+                batches = lotes.orEmpty().map { it.toDomain() }
+        )
+
 fun ProductDetailResult.toDomain(): ProductCatalogItem {
-    val totalCantidad = bodegas.orEmpty().sumOf { bodega ->
-        bodega.lotes.orEmpty().sumOf { it.cantidad }
+    val warehouses = bodegas.orEmpty().map { it.toDomain() }
+    val totalCantidad = warehouses.sumOf { warehouse ->
+        warehouse.batches.sumOf { it.quantity }
     }
 
     val firstWarehouseLabel =
-            bodegas.orEmpty()
+            warehouses
                     .takeIf { it.isNotEmpty() }
-                    ?.joinToString { it.bodegaNombre }
+                    ?.joinToString { it.name }
                     ?: "Sin inventario registrado"
 
     val now = DateTimeFormatter.ISO_INSTANT.format(Instant.now().atZone(ZoneId.of("UTC")))
@@ -53,6 +66,7 @@ fun ProductDetailResult.toDomain(): ProductCatalogItem {
             provider = proveedor?.nombre ?: "Sin proveedor",
             country = proveedor?.pais ?: "-",
             guidelineLabel = null,
+            warehouses = warehouses,
             inventory = ProductInventory(
                     total = totalCantidad,
                     reserved = 0,

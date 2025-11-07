@@ -4,6 +4,8 @@ import com.example.mobile_medisupply.features.orders.data.mappers.toDomain
 import com.example.mobile_medisupply.features.orders.data.mappers.toSummary
 import com.example.mobile_medisupply.features.orders.data.remote.ProductApi
 import com.example.mobile_medisupply.features.orders.data.remote.ProductItemRequest
+import com.example.mobile_medisupply.features.orders.data.remote.CreateOrderRequest
+import com.example.mobile_medisupply.features.orders.data.remote.OrderCreatedResult
 import com.example.mobile_medisupply.features.orders.domain.model.ProductCatalogItem
 import com.example.mobile_medisupply.features.orders.domain.model.ProductSummary
 import com.example.mobile_medisupply.features.orders.domain.repository.ProductCatalogRepositoryImp
@@ -18,12 +20,20 @@ class ProductCatalogRepository @Inject constructor(
     override suspend fun createOrder(
         clienteId: String,
         products: List<ProductItemRequest>
-    ): Flow<Result<Unit>> = flow {
+    ): Flow<Result<OrderCreatedResult>> = flow {
         try {
-            val response = api.crearPedidoDesdeVendedor(clienteId, products)
+            val response = api.crearPedidoDesdeVendedor(
+                clienteId,
+                CreateOrderRequest(productos = products)
+            )
 
             if (response.success) {
-                emit(Result.success(Unit))
+                val result = response.result
+                if (result != null) {
+                    emit(Result.success(result))
+                } else {
+                    emit(Result.failure(IllegalStateException("Respuesta sin resultado")))
+                }
             } else {
                 emit(Result.failure(Exception("Error creando pedido: ${response.message ?: "desconocido"}")))
             }
