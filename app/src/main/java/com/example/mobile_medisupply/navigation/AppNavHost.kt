@@ -103,7 +103,10 @@ fun AppNavHost(
                         onVisitClick = { visit ->
                             if (canViewClients) {
                                 navController.navigate(
-                                        Screen.VisitDetail.createRoute(visit.id)
+                                        Screen.VisitDetail.createRoute(
+                                                visit.clientId,
+                                                visit.id
+                                        )
                                 )
                             }
                         }
@@ -293,9 +296,14 @@ fun AppNavHost(
                             clientDetail = detail,
                             onBackClick = { navController.navigateUp() },
                             onVisitSelected = { visit ->
-                                navController.navigate(
-                                        Screen.VisitDetail.createRoute( visit.id)
-                                )
+                                clientId?.let {
+                                    navController.navigate(
+                                            Screen.VisitDetail.createRoute(
+                                                    it,
+                                                    visit.id
+                                            )
+                                    )
+                                }
                             }
                     )
                 } else {
@@ -316,7 +324,12 @@ fun AppNavHost(
                 route = Screen.VisitDetail.route,
                 arguments =
                         listOf(
-                                navArgument("visitId") { type = NavType.StringType }
+                                navArgument(Screen.VisitDetail.CLIENT_ID_ARG) {
+                                    type = NavType.StringType
+                                },
+                                navArgument(Screen.VisitDetail.VISIT_ID_ARG) {
+                                    type = NavType.StringType
+                                }
                         )
         ) { backStackEntry ->
             if (!canViewClients) {
@@ -332,10 +345,10 @@ fun AppNavHost(
                     )
                 }
             } else {
-                val clientId = "clinica-san-rafael"
-                val visitId = backStackEntry.arguments?.getString("visitId")
-                val clientDetail =
-                        clientId?.let { ClientRepositoryProvider.repository.getClientDetail(it) }
+                val clientId =
+                        backStackEntry.arguments?.getString(Screen.VisitDetail.CLIENT_ID_ARG)
+                val visitId =
+                        backStackEntry.arguments?.getString(Screen.VisitDetail.VISIT_ID_ARG)
                 val viewModel: VisitDetailViewModel = hiltViewModel()
                 val visitDetail =
                         if (clientId != null && visitId != null) {
@@ -344,13 +357,13 @@ fun AppNavHost(
                                     visitId
                             )
                         } else null
-                if (visitId != null) {
+                if (clientId != null && visitId != null && visitDetail != null) {
                     VisitDetailScreen(
                             visitId = visitId,
-                            visitDetail = visitDetail!!,
+                            visitDetail = visitDetail,
                             onBackClick = { navController.navigateUp() },
                             onSaveClick = { _, _ -> navController.navigateUp() },
-                        viewModel = viewModel
+                            viewModel = viewModel
                     )
                 } else {
                     Surface {
