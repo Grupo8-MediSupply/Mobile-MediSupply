@@ -1,6 +1,7 @@
 package com.example.mobile_medisupply.features.home.domain.repository
 
 import com.example.mobile_medisupply.features.home.domain.model.ScheduledVisit
+import com.example.mobile_medisupply.features.home.domain.model.VisitDetail
 import kotlinx.coroutines.flow.Flow
 
 interface ScheduledVisitsRepository {
@@ -10,4 +11,6 @@ interface ScheduledVisitsRepository {
 
 interface ScheduledVisitsRepositoryImp {
     suspend fun getScheduledVisits(fecha: String? = null): Flow<List<ScheduledVisit>>
+
+    suspend fun getVisitDetail(visitaId: String): Flow<VisitDetail?>
 }

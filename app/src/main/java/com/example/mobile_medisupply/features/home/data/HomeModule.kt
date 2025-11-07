@@ -17,5 +17,4 @@ abstract class HomeModule{
     abstract fun bindScheduleVisitsRepository(
         impl: ScheduledVisitRepositoryImp
     ) : ScheduledVisitsRepositoryImp
-
 }

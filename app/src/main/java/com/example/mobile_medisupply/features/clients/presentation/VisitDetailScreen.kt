@@ -44,6 +44,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +59,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.mobile_medisupply.R
 import com.example.mobile_medisupply.features.clients.domain.model.ClientVisitDetail
 import com.example.mobile_medisupply.features.clients.domain.model.ClientVisitStatus
@@ -69,12 +72,20 @@ private const val MAX_VIDEO_DURATION_MS = 60_000L // 60 seconds
 
 @Composable
 fun VisitDetailScreen(
-        clientName: String,
+        visitId: String,
         visitDetail: ClientVisitDetail,
         modifier: Modifier = Modifier,
         onBackClick: () -> Unit,
-        onSaveClick: (String, VisitVideoAttachment?) -> Unit
+        onSaveClick: (String, VisitVideoAttachment?) -> Unit,
+        viewModel: VisitDetailViewModel = hiltViewModel(),
+
 ) {
+    val visitDetailGCP by viewModel.visitDetail.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    LaunchedEffect(visitId) {
+        viewModel.loadVisitDetail(visitId)
+    }
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var showVideoOptions by remember { mutableStateOf(false) }
@@ -182,7 +193,7 @@ fun VisitDetailScreen(
             )
 
             Text(
-                    text = clientName,
+                    text = visitDetailGCP?.client?.name ?: "Placeholder",
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary
             )
@@ -514,7 +525,7 @@ private fun ClientVisitStatus.localizedLabel(): String =
 private fun VisitDetailPreview() {
     MobileMediSupplyTheme {
         VisitDetailScreen(
-                clientName = "Clínica San Rafael",
+                visitId = "Clínica San Rafael",
                 visitDetail =
                         ClientVisitDetail(
                                 id = "visit-1001",
