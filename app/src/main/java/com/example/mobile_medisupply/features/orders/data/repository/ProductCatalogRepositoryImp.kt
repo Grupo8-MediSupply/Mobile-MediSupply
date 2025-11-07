@@ -1,11 +1,11 @@
 package com.example.mobile_medisupply.features.orders.data.repository
 
-import com.example.mobile_medisupply.features.home.data.mappers.toDomainList
-import com.example.mobile_medisupply.features.orders.data.mappers.toDomainList
+import com.example.mobile_medisupply.features.orders.data.mappers.toDomain
+import com.example.mobile_medisupply.features.orders.data.mappers.toSummary
 import com.example.mobile_medisupply.features.orders.data.remote.ProductApi
-import com.example.mobile_medisupply.features.orders.data.remote.ProductDto
 import com.example.mobile_medisupply.features.orders.data.remote.ProductItemRequest
 import com.example.mobile_medisupply.features.orders.domain.model.ProductCatalogItem
+import com.example.mobile_medisupply.features.orders.domain.model.ProductSummary
 import com.example.mobile_medisupply.features.orders.domain.repository.ProductCatalogRepositoryImp
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -33,20 +33,41 @@ class ProductCatalogRepository @Inject constructor(
         }
     }
 
-    override suspend fun getCatalog(): Flow<List<ProductDto>> = flow {
+    override suspend fun getCatalog(): Flow<Result<List<ProductSummary>>> = flow {
         try {
             val response = api.obtenerProductos()
             if (response.success && response.result != null) {
-                emit(response.result)
+                emit(Result.success(response.result.map { it.toSummary() }))
             } else {
-                emit(emptyList())
+                emit(
+                        Result.failure(
+                                IllegalStateException(
+                                        response.message ?: "Error al obtener catálogo"
+                                )
+                        )
+                )
             }
         } catch (e: Exception) {
-            emit(emptyList())
+            emit(Result.failure(e))
         }
     }
 
-    override suspend fun getProductById(productId: String): Flow<ProductCatalogItem?> = flow {
-
+    override suspend fun getProductDetail(productId: String): Flow<Result<ProductCatalogItem>> = flow {
+        try {
+            val response = api.obtenerDetalleProducto(productId)
+            if (response.success && response.result != null) {
+                emit(Result.success(response.result.toDomain()))
+            } else {
+                emit(
+                        Result.failure(
+                                IllegalStateException(
+                                        response.message ?: "Producto no disponible"
+                                )
+                        )
+                )
+            }
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
     }
 }

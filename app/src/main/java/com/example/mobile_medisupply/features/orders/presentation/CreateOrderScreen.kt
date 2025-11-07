@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
@@ -42,6 +43,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,29 +54,37 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.example.mobile_medisupply.features.auth.domain.model.UserRole
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
 import com.example.mobile_medisupply.features.clients.domain.model.ClientSummary
-import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
-import com.example.mobile_medisupply.features.orders.domain.model.ProductCatalogItem
+import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
+import com.example.mobile_medisupply.features.orders.domain.model.ProductSummary
+import com.example.mobile_medisupply.features.orders.presentation.ProductCatalogUiState
 
 @Composable
 fun CreateOrderScreen(
         userRole: UserRole,
         sessionClientId: String?,
-        selections: Map<String, Int>,
+        selections: Map<String, OrderSummaryItem>,
+        catalogState: ProductCatalogUiState,
+        onRefreshCatalog: () -> Unit,
         onBackClick: () -> Unit,
-        onOrderSubmit: (Map<String, Int>) -> Unit = {},
-        onProductDetail: (ProductCatalogItem) -> Unit = {}
+        onOrderSubmit: (Map<String, OrderSummaryItem>) -> Unit = {},
+        onProductDetail: (String) -> Unit = {}
 ) {
-    val catalog = remember { ProductCatalogRepositoryProvider.repository.getCatalog() }
+    val catalog = catalogState.products
     val categories =
             remember(catalog) {
                 buildList {
                     add("Todas")
-                    addAll(catalog.map { it.category }.distinct())
+                    addAll(
+                            catalog.map { summary -> summary.sku.substringBefore("-").uppercase() }
+                                    .distinct()
+                    )
                 }
             }
 
@@ -86,12 +96,14 @@ fun CreateOrderScreen(
     val filteredProducts =
             remember(searchQuery, selectedCategory, catalog) {
                 catalog.filter { product ->
+                    val productCategory = product.sku.substringBefore("-").uppercase()
                     val matchesCategory =
-                            selectedCategory == "Todas" || product.category == selectedCategory
+                            selectedCategory == "Todas" || productCategory == selectedCategory
                     val matchesQuery =
                             searchQuery.isBlank() ||
                                     product.name.contains(searchQuery, ignoreCase = true) ||
-                                    product.description.contains(searchQuery, ignoreCase = true)
+                                    product.description.contains(searchQuery, ignoreCase = true) ||
+                                    product.sku.contains(searchQuery, ignoreCase = true)
                     matchesCategory && matchesQuery
                 }
             }
@@ -113,8 +125,8 @@ fun CreateOrderScreen(
         }
     }
 
-    val totalUnits = selections.values.sum()
-    val totalProducts = selections.count { it.value > 0 }
+    val totalUnits = selections.values.sumOf { it.quantity }
+    val totalProducts = selections.values.count { it.quantity > 0 }
 
     Surface(
             modifier = Modifier.fillMaxSize(),
@@ -164,17 +176,26 @@ fun CreateOrderScreen(
                     }
                 }
 
-                if (filteredProducts.isEmpty()) {
-                    item { EmptyCatalogState() }
-                } else {
-                    items(filteredProducts, key = { it.id }) { product ->
-                        val selectedQuantity = selections[product.id] ?: 0
-                        ProductCatalogCard(
-                                product = product,
-                                selectedQuantity = selectedQuantity,
-                                onProductDetail = { onProductDetail(product) }
-                        )
+                when {
+                    catalogState.isLoading -> item { CatalogLoadingState() }
+                    catalogState.errorMessage != null -> {
+                        item {
+                            CatalogErrorState(
+                                    message = catalogState.errorMessage,
+                                    onRetry = onRefreshCatalog
+                            )
+                        }
                     }
+                    filteredProducts.isEmpty() -> item { EmptyCatalogState(onRefreshCatalog) }
+                    else ->
+                            items(filteredProducts, key = { it.id }) { product ->
+                                val selectedQuantity = selections[product.id]?.quantity ?: 0
+                                ProductCatalogCard(
+                                        product = product,
+                                        selectedQuantity = selectedQuantity,
+                                        onProductDetail = { onProductDetail(product.id) }
+                                )
+                            }
                 }
 
                 item { Spacer(modifier = Modifier.height(64.dp)) }
@@ -394,7 +415,7 @@ private fun CategorySelector(
 
 @Composable
 private fun ProductCatalogCard(
-        product: ProductCatalogItem,
+        product: ProductSummary,
         selectedQuantity: Int,
         onProductDetail: () -> Unit
 ) {
@@ -418,7 +439,7 @@ private fun ProductCatalogCard(
                             color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                            text = product.presentation,
+                            text = "SKU: ${product.sku}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -438,7 +459,9 @@ private fun ProductCatalogCard(
             Text(
                     text = product.description,
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -450,12 +473,12 @@ private fun ProductCatalogCard(
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     Text(
-                            text = "Categoría: ${product.category}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            text = product.formattedPrice,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary
                     )
                     Text(
-                            text = "Proveedor: ${product.provider}",
+                            text = "Categoría: ${product.sku.substringBefore('-').uppercase()}",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -480,7 +503,7 @@ private fun ProductCatalogCard(
 }
 
 @Composable
-private fun EmptyCatalogState() {
+private fun EmptyCatalogState(onRefresh: () -> Unit) {
     Column(
             modifier =
                     Modifier.fillMaxWidth()
@@ -504,6 +527,55 @@ private fun EmptyCatalogState() {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        TextButton(onClick = onRefresh) {
+            Text(text = "Recargar catálogo")
+        }
+    }
+}
+
+@Composable
+private fun CatalogLoadingState() {
+    Column(
+            modifier =
+                    Modifier.fillMaxWidth()
+                            .padding(vertical = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        CircularProgressIndicator()
+        Text(
+                text = "Cargando catálogo...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun CatalogErrorState(message: String, onRetry: () -> Unit) {
+    Column(
+            modifier =
+                    Modifier.fillMaxWidth()
+                            .padding(vertical = 48.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+                text = "No pudimos cargar los productos.",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center
+        )
+        Text(
+                text = message,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(0.8f)
+        )
+        TextButton(onClick = onRetry) {
+            Text(text = "Intentar de nuevo")
+        }
     }
 }
 

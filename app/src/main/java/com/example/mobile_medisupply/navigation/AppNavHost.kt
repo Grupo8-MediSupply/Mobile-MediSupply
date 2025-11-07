@@ -1,13 +1,19 @@
 package com.example.mobile_medisupply.navigation
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -37,12 +43,13 @@ import com.example.mobile_medisupply.features.clients.presentation.VisitDetailVi
 import com.example.mobile_medisupply.features.home.presentation.CreateVisitScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeViewModel
-import com.example.mobile_medisupply.features.orders.data.ProductCatalogRepositoryProvider
 import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
 import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrderSummaryScreen
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
+import com.example.mobile_medisupply.features.orders.presentation.ProductCatalogViewModel
+import com.example.mobile_medisupply.features.orders.presentation.ProductDetailViewModel
 
 @Composable
 fun AppNavHost(
@@ -54,7 +61,7 @@ fun AppNavHost(
         config: AppConfig?,
         modifier: Modifier = Modifier
 ) {
-    val orderSelections = remember { mutableStateMapOf<String, Int>() }
+    val orderSelections = remember { mutableStateMapOf<String, OrderSummaryItem>() }
 
     NavHost(
             navController = navController,
@@ -170,16 +177,22 @@ fun AppNavHost(
         }
 
         composable(Screen.CreateOrder.route) {
+            val catalogViewModel: ProductCatalogViewModel = hiltViewModel()
+            val catalogState by catalogViewModel.uiState.collectAsState()
             CreateOrderScreen(
                     userRole = session?.role ?: UserRole.VENDEDOR,
                     sessionClientId = session?.userId,
                     selections = orderSelections,
+                    catalogState = catalogState,
+                    onRefreshCatalog = { catalogViewModel.loadCatalog() },
                     onBackClick = { navController.navigateUp() },
-                    onOrderSubmit = {
-                        navController.navigate(Screen.OrderSummary.route)
+                    onOrderSubmit = { selectionsSnapshot ->
+                        if (selectionsSnapshot.isNotEmpty()) {
+                            navController.navigate(Screen.OrderSummary.route)
+                        }
                     },
-                    onProductDetail = { product ->
-                        navController.navigate(Screen.ProductDetail.createRoute(product.id))
+                    onProductDetail = { productId ->
+                        navController.navigate(Screen.ProductDetail.createRoute(productId))
                     }
             )
         }
@@ -189,8 +202,8 @@ fun AppNavHost(
                 arguments = listOf(navArgument("productId") { type = NavType.StringType })
         ) { backStackEntry ->
             val productId = backStackEntry.arguments?.getString("productId")
-            val product = productId?.let { ProductCatalogRepositoryProvider.repository.getProductById(it) }
-            if (product == null) {
+            val viewModel: ProductDetailViewModel = hiltViewModel()
+            if (productId == null) {
                 Surface {
                     Text(
                             text = "No encontramos la información del producto.",
@@ -202,36 +215,69 @@ fun AppNavHost(
                     )
                 }
             } else {
-                ProductDetailScreen(
-                        product = product,
-                        currentQuantity = orderSelections[product.id] ?: 0,
-                        onBackClick = { navController.navigateUp() },
-                        onQuantityConfirmed = { quantity ->
-                            if (quantity <= 0) {
-                                orderSelections.remove(product.id)
-                            } else {
-                                orderSelections[product.id] = quantity
-                            }
-                            navController.navigateUp()
+                LaunchedEffect(productId) { viewModel.loadProduct(productId) }
+                val detailState by viewModel.uiState.collectAsState()
+                when {
+                    detailState.isLoading -> {
+                        Surface {
+                            CircularProgressIndicator(
+                                    modifier =
+                                            Modifier.fillMaxSize()
+                                                    .wrapContentSize(Alignment.Center)
+                            )
                         }
-                )
+                    }
+                    detailState.error != null -> {
+                        val errorMessage = detailState.error ?: ""
+                        Surface {
+                            Column(
+                                    modifier =
+                                            Modifier.fillMaxSize()
+                                                    .padding(horizontal = 24.dp)
+                                                    .wrapContentSize(Alignment.Center),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Text(
+                                        text = errorMessage,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        textAlign = TextAlign.Center
+                                )
+                                TextButton(onClick = { viewModel.loadProduct(productId) }) {
+                                    Text("Reintentar")
+                                }
+                            }
+                        }
+                    }
+                    detailState.product != null -> {
+                        val product = detailState.product ?: return@composable
+                        ProductDetailScreen(
+                                product = product,
+                                currentQuantity = orderSelections[product.id]?.quantity ?: 0,
+                                onBackClick = { navController.navigateUp() },
+                                onQuantityConfirmed = { quantity ->
+                                    if (quantity <= 0) {
+                                        orderSelections.remove(product.id)
+                                    } else {
+                                        orderSelections[product.id] =
+                                                OrderSummaryItem(
+                                                        productId = product.id,
+                                                        name = product.name,
+                                                        quantity = quantity,
+                                                        unitPrice = product.pricing.price,
+                                                        currency = product.pricing.currency
+                                                )
+                                    }
+                                    navController.navigateUp()
+                                }
+                        )
+                    }
+                }
             }
         }
 
         composable(Screen.OrderSummary.route) {
-            val summaryItems =
-                    orderSelections.mapNotNull { (productId, quantity) ->
-                        val product = ProductCatalogRepositoryProvider.repository.getProductById(productId)
-                        if (product != null && quantity > 0) {
-                            OrderSummaryItem(
-                                    productId = product.id,
-                                    name = product.name,
-                                    quantity = quantity,
-                                    unitPrice = product.pricing.price,
-                                    currency = product.pricing.currency
-                            )
-                        } else null
-                    }
+            val summaryItems = orderSelections.values.filter { it.quantity > 0 }
             val currencyCode = summaryItems.firstOrNull()?.currency ?: "COP"
             val totalAmount = summaryItems.sumOf { it.lineTotal }
             OrderSummaryScreen(

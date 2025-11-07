@@ -42,6 +42,15 @@ data class ProductPricing(
         val lastUpdated: String
 )
 
+data class ProductSummary(
+        val id: String,
+        val sku: String,
+        val name: String,
+        val description: String,
+        val price: Double,
+        val formattedPrice: String
+)
+
 data class OrderSummaryItem(
         val productId: String,
         val name: String,

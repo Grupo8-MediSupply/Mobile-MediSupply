@@ -1,8 +1,8 @@
 package com.example.mobile_medisupply.features.orders.domain.repository
 
-import com.example.mobile_medisupply.features.orders.data.remote.ProductDto
 import com.example.mobile_medisupply.features.orders.data.remote.ProductItemRequest
 import com.example.mobile_medisupply.features.orders.domain.model.ProductCatalogItem
+import com.example.mobile_medisupply.features.orders.domain.model.ProductSummary
 import kotlinx.coroutines.flow.Flow
 
 interface ProductCatalogRepository {
@@ -16,7 +16,7 @@ interface ProductCatalogRepositoryImp {
 
     suspend fun createOrder(clienteId: String,products: List<ProductItemRequest>): Flow<Result<Unit>>
 
-    suspend fun getCatalog(): Flow<List<ProductDto>>
+    suspend fun getCatalog(): Flow<Result<List<ProductSummary>>>
 
-    suspend fun getProductById(productId: String): Flow<ProductCatalogItem?>
+    suspend fun getProductDetail(productId: String): Flow<Result<ProductCatalogItem>>
 }
