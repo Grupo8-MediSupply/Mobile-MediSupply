@@ -13,12 +13,14 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -33,6 +35,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -57,6 +60,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -65,7 +69,10 @@ import com.example.mobile_medisupply.features.clients.domain.model.ClientVisitDe
 import com.example.mobile_medisupply.features.clients.domain.model.ClientVisitStatus
 import com.example.mobile_medisupply.features.clients.domain.model.VisitVideoAttachment
 import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
+import com.example.mobile_medisupply.features.home.domain.model.VisitDetail as HomeVisitDetail
+import com.example.mobile_medisupply.features.home.data.remote.Ubicacion
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 private const val MAX_VIDEO_SIZE_BYTES = 30L * 1024 * 1024 // 30MB
 private const val MAX_VIDEO_DURATION_MS = 60_000L // 60 seconds
@@ -73,14 +80,13 @@ private const val MAX_VIDEO_DURATION_MS = 60_000L // 60 seconds
 @Composable
 fun VisitDetailScreen(
         visitId: String,
-        visitDetail: ClientVisitDetail,
         modifier: Modifier = Modifier,
         onBackClick: () -> Unit,
         onSaveClick: (String, VisitVideoAttachment?) -> Unit,
         viewModel: VisitDetailViewModel = hiltViewModel(),
 
 ) {
-    val visitDetailGCP by viewModel.visitDetail.collectAsState()
+    val visitDetailDomain by viewModel.visitDetail.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
 
     LaunchedEffect(visitId) {
@@ -89,10 +95,20 @@ fun VisitDetailScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var showVideoOptions by remember { mutableStateOf(false) }
-    var comment by remember { mutableStateOf(visitDetail.notes.orEmpty()) }
+    var comment by remember { mutableStateOf("") }
     var selectedVideo by remember { mutableStateOf<VisitVideoAttachment?>(null) }
     val scope = rememberCoroutineScope()
-    val statusLabel = visitDetail.status.localizedLabel()
+    val visitDetail = visitDetailDomain?.toClientVisitDetail()
+    LaunchedEffect(visitDetail?.notes) {
+        if (visitDetail != null) {
+            comment = visitDetail.notes.orEmpty()
+        }
+    }
+    val statusLabel = visitDetail?.status?.localizedLabel().orEmpty()
+    val clientName =
+            visitDetailDomain?.client?.name
+                    ?: visitDetail?.title
+                    ?: stringResource(R.string.visit_detail_unknown_client)
 
     val galleryLauncher =
             rememberLauncherForActivityResult(
@@ -148,155 +164,228 @@ fun VisitDetailScreen(
                 }
             }
 
-    if (showVideoOptions) {
-        AttachVideoOptionsDialog(
-                onDismiss = { showVideoOptions = false },
-                onRecord = {
-                    showVideoOptions = false
-                    val intent =
-                            Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
-                                putExtra(MediaStore.EXTRA_DURATION_LIMIT, 60)
-                                putExtra(MediaStore.EXTRA_SIZE_LIMIT, MAX_VIDEO_SIZE_BYTES)
-                            }
-                    captureLauncher.launch(intent)
-                },
-                onPickFromGallery = {
-                    showVideoOptions = false
-                    galleryLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.VideoOnly)
-                    )
-                }
-        )
-    }
-
     Scaffold(
             modifier = modifier.fillMaxSize(),
             snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
-        Column(
+        when {
+            isLoading && visitDetail == null ->
+                    VisitDetailLoadingState(paddingValues = paddingValues)
+            visitDetail == null ->
+                    VisitDetailEmptyState(paddingValues = paddingValues)
+            else ->
+                    VisitDetailLoadedContent(
+                            paddingValues = paddingValues,
+                            clientName = clientName,
+                            visitDetail = visitDetail,
+                            statusLabel = statusLabel,
+                            comment = comment,
+                            onCommentChange = { comment = it },
+                            showVideoOptions = showVideoOptions,
+                            onShowVideoOptionsChange = { showVideoOptions = it },
+                            onBackClick = onBackClick,
+                            onSaveClick = { text, video -> onSaveClick(text, video) },
+                            selectedVideo = selectedVideo,
+                            onSelectedVideoChange = { selectedVideo = it },
+                            onRecordVideo = {
+                                val intent =
+                                        Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
+                                            putExtra(MediaStore.EXTRA_DURATION_LIMIT, 60)
+                                            putExtra(MediaStore.EXTRA_SIZE_LIMIT, MAX_VIDEO_SIZE_BYTES)
+                                        }
+                                captureLauncher.launch(intent)
+                            },
+                            onPickFromGallery = {
+                                galleryLauncher.launch(
+                                        PickVisualMediaRequest(
+                                                ActivityResultContracts.PickVisualMedia.VideoOnly
+                                        )
+                                )
+                            }
+                    )
+        }
+    }
+}
+
+@Composable
+private fun VisitDetailLoadedContent(
+        paddingValues: PaddingValues,
+        clientName: String,
+        visitDetail: ClientVisitDetail,
+        statusLabel: String,
+        comment: String,
+        onCommentChange: (String) -> Unit,
+        showVideoOptions: Boolean,
+        onShowVideoOptionsChange: (Boolean) -> Unit,
+        onBackClick: () -> Unit,
+        onSaveClick: (String, VisitVideoAttachment?) -> Unit,
+        selectedVideo: VisitVideoAttachment?,
+        onSelectedVideoChange: (VisitVideoAttachment?) -> Unit,
+        onRecordVideo: () -> Unit,
+        onPickFromGallery: () -> Unit,
+) {
+    if (showVideoOptions) {
+        AttachVideoOptionsDialog(
+                onDismiss = { onShowVideoOptionsChange(false) },
+                onRecord = {
+                    onShowVideoOptionsChange(false)
+                    onRecordVideo()
+                },
+                onPickFromGallery = {
+                    onShowVideoOptionsChange(false)
+                    onPickFromGallery()
+                }
+        )
+    }
+
+    Column(
+            modifier =
+                    Modifier.fillMaxSize()
+                            .padding(paddingValues)
+                            .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
+                            .verticalScroll(rememberScrollState())
+                            .padding(horizontal = 16.dp, vertical = 24.dp)
+    ) {
+        Icon(
+                imageVector = Icons.Outlined.ArrowBack,
+                contentDescription = stringResource(R.string.back),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier =
-                        Modifier.fillMaxSize()
-                                .padding(paddingValues)
-                                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f))
-                                .verticalScroll(rememberScrollState())
-                                .padding(horizontal = 16.dp, vertical = 24.dp)
+                        Modifier.padding(bottom = 16.dp)
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable(onClick = onBackClick)
+                                .padding(4.dp)
+        )
+
+        Text(
+                text = clientName,
+                style = MaterialTheme.typography.headlineMedium,
+                color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+                text = visitDetail.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+        )
+        Text(
+                text =
+                        stringResource(
+                                R.string.visit_detail_status_date,
+                                statusLabel,
+                                visitDetail.scheduledDate
+                        ),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        VisitInfoCard(visitDetail = visitDetail, statusLabel = statusLabel)
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+                text = stringResource(R.string.visit_detail_comments),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface
+        )
+
+        OutlinedTextField(
+                value = comment,
+                onValueChange = onCommentChange,
+                modifier =
+                        Modifier.fillMaxWidth().height(160.dp).padding(top = 12.dp),
+                placeholder = {
+                    Text(stringResource(R.string.visit_detail_comments_placeholder))
+                }
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors =
+                        CardDefaults.cardColors(
+                                containerColor =
+                                        MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
+                        )
         ) {
-            Icon(
-                    imageVector = Icons.Outlined.ArrowBack,
-                    contentDescription = stringResource(R.string.back),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier =
-                            Modifier.padding(bottom = 16.dp)
-                                    .clip(MaterialTheme.shapes.small)
-                                    .clickable(onClick = onBackClick)
-                                    .padding(4.dp)
-            )
+            Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                            text = stringResource(R.string.visit_detail_video_section),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface
+                    )
 
-            Text(
-                    text = visitDetailGCP?.client?.name ?: "Placeholder",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                    text = visitDetail.title,
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 4.dp)
-            )
-            Text(
-                    text =
-                            stringResource(
-                                    R.string.visit_detail_status_date,
-                                    statusLabel,
-                                    visitDetail.scheduledDate
-                            ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = 8.dp)
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            VisitInfoCard(visitDetail = visitDetail, statusLabel = statusLabel)
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Text(
-                    text = stringResource(R.string.visit_detail_comments),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurface
-            )
-
-            OutlinedTextField(
-                    value = comment,
-                    onValueChange = { comment = it },
-                    modifier =
-                            Modifier.fillMaxWidth().height(160.dp).padding(top = 12.dp),
-                    placeholder = {
-                        Text(stringResource(R.string.visit_detail_comments_placeholder))
-                    }
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors =
-                            CardDefaults.cardColors(
-                                    containerColor =
-                                            MaterialTheme.colorScheme.surface.copy(alpha = 0.92f)
-                            )
-            ) {
-                Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                    Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                                text = stringResource(R.string.visit_detail_video_section),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface
+                    OutlinedButton(onClick = { onShowVideoOptionsChange(true) }) {
+                        Icon(
+                                imageVector = Icons.Outlined.AttachFile,
+                                contentDescription =
+                                        stringResource(R.string.visit_detail_attach_video_cd)
                         )
-
-                        OutlinedButton(onClick = { showVideoOptions = true }) {
-                            Icon(
-                                    imageVector = Icons.Outlined.AttachFile,
-                                    contentDescription =
-                                            stringResource(R.string.visit_detail_attach_video_cd)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(text = stringResource(R.string.visit_detail_attach_video))
-                        }
-                    }
-
-                    if (selectedVideo != null) {
-                        Spacer(modifier = Modifier.height(16.dp))
-                        SelectedVideoSummary(
-                                attachment = selectedVideo!!,
-                                onRemove = { selectedVideo = null }
-                        )
-                    } else {
-                        Text(
-                                text = stringResource(R.string.visit_detail_no_video_selected),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.padding(top = 12.dp)
-                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = stringResource(R.string.visit_detail_attach_video))
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Button(
-                    onClick = { onSaveClick(comment.trim(), selectedVideo) },
-                    modifier = Modifier.align(Alignment.CenterHorizontally),
-                    enabled = comment.isNotBlank() || selectedVideo != null
-            ) {
-                Text(text = stringResource(R.string.visit_detail_save))
+                if (selectedVideo != null) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SelectedVideoSummary(
+                            attachment = selectedVideo,
+                            onRemove = { onSelectedVideoChange(null) }
+                    )
+                } else {
+                    Text(
+                            text = stringResource(R.string.visit_detail_no_video_selected),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 12.dp)
+                    )
+                }
             }
         }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+                onClick = { onSaveClick(comment.trim(), selectedVideo) },
+                modifier = Modifier.align(Alignment.CenterHorizontally),
+                enabled = comment.isNotBlank() || selectedVideo != null
+        ) {
+            Text(text = stringResource(R.string.visit_detail_save))
+        }
+    }
+}
+
+@Composable
+private fun VisitDetailLoadingState(paddingValues: PaddingValues) {
+    Box(
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
+            contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+@Composable
+private fun VisitDetailEmptyState(paddingValues: PaddingValues) {
+    Box(
+            modifier = Modifier.fillMaxSize().padding(paddingValues),
+            contentAlignment = Alignment.Center
+    ) {
+        Text(
+                text = stringResource(R.string.visit_detail_not_found),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+        )
     }
 }
 
@@ -509,6 +598,35 @@ private fun extractVideoUri(result: ActivityResult): Uri? {
     return data.data
 }
 
+private fun HomeVisitDetail.toClientVisitDetail(): ClientVisitDetail =
+        ClientVisitDetail(
+                id = id,
+                title = client.name,
+                scheduledDate = date,
+                status = status.toClientVisitStatus(),
+                location = client.Location.toDisplayLocation(),
+                notes = comments
+        )
+
+private fun String?.toClientVisitStatus(): ClientVisitStatus =
+        when (this?.lowercase(Locale.getDefault())) {
+            "en_curso", "en curso", "en_proceso", "en proceso", "in_progress", "progreso" ->
+                    ClientVisitStatus.EN_CURSO
+            "finalizada", "finalizado", "completada", "completado", "completed" ->
+                    ClientVisitStatus.FINALIZADA
+            else -> ClientVisitStatus.PROGRAMADA
+        }
+
+private fun Ubicacion?.toDisplayLocation(): String {
+    if (this == null) return "-"
+    val latValue = this.lat.toCoordinateString()
+    val lngValue = this.lng.toCoordinateString()
+    return "$latValue, $lngValue"
+}
+
+private fun Double.toCoordinateString(): String =
+        String.format(Locale.getDefault(), "%.4f", this)
+
 @Composable
 private fun ClientVisitStatus.localizedLabel(): String =
         when (this) {
@@ -524,19 +642,30 @@ private fun ClientVisitStatus.localizedLabel(): String =
 @Composable
 private fun VisitDetailPreview() {
     MobileMediSupplyTheme {
-        VisitDetailScreen(
-                visitId = "Clínica San Rafael",
-                visitDetail =
-                        ClientVisitDetail(
-                                id = "visit-1001",
-                                title = "Visita 1",
-                                scheduledDate = "05/20/2024",
-                                status = ClientVisitStatus.PROGRAMADA,
-                                location = "Bogotá",
-                                notes = "Recordar entrega de manual técnico."
-                        ),
+        val detail =
+                ClientVisitDetail(
+                        id = "visit-1001",
+                        title = "Visita 1",
+                        scheduledDate = "05/20/2024",
+                        status = ClientVisitStatus.PROGRAMADA,
+                        location = "Bogotá",
+                        notes = "Recordar entrega de manual técnico."
+                )
+        VisitDetailLoadedContent(
+                paddingValues = PaddingValues(),
+                clientName = "Clínica San Rafael",
+                visitDetail = detail,
+                statusLabel = detail.status.localizedLabel(),
+                comment = detail.notes.orEmpty(),
+                onCommentChange = {},
+                showVideoOptions = false,
+                onShowVideoOptionsChange = {},
                 onBackClick = {},
-                onSaveClick = { _, _ -> }
+                onSaveClick = { _, _ -> },
+                selectedVideo = null,
+                onSelectedVideoChange = {},
+                onRecordVideo = {},
+                onPickFromGallery = {}
         )
     }
 }

@@ -350,17 +350,9 @@ fun AppNavHost(
                 val visitId =
                         backStackEntry.arguments?.getString(Screen.VisitDetail.VISIT_ID_ARG)
                 val viewModel: VisitDetailViewModel = hiltViewModel()
-                val visitDetail =
-                        if (clientId != null && visitId != null) {
-                            ClientRepositoryProvider.repository.getClientVisitDetail(
-                                    clientId,
-                                    visitId
-                            )
-                        } else null
-                if (clientId != null && visitId != null && visitDetail != null) {
+                if (clientId != null && visitId != null) {
                     VisitDetailScreen(
                             visitId = visitId,
-                            visitDetail = visitDetail,
                             onBackClick = { navController.navigateUp() },
                             onSaveClick = { _, _ -> navController.navigateUp() },
                             viewModel = viewModel
