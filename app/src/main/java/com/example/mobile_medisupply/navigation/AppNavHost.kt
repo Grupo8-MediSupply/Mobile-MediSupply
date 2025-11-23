@@ -27,12 +27,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
-import java.text.NumberFormat
-import java.util.Currency
-import java.util.Locale
 import com.example.mobile_medisupply.features.auth.data.repository.UserSession
 import com.example.mobile_medisupply.features.auth.domain.model.UserRole
-import com.example.mobile_medisupply.features.config.domain.model.AppConfig
 import com.example.mobile_medisupply.features.auth.presentation.login.LoginScreen
 import com.example.mobile_medisupply.features.auth.presentation.register.RegisterScreen
 import com.example.mobile_medisupply.features.clients.data.ClientRepositoryProvider
@@ -41,18 +37,22 @@ import com.example.mobile_medisupply.features.clients.presentation.ClientsScreen
 import com.example.mobile_medisupply.features.clients.presentation.ClientsViewModel
 import com.example.mobile_medisupply.features.clients.presentation.VisitDetailScreen
 import com.example.mobile_medisupply.features.clients.presentation.VisitDetailViewModel
+import com.example.mobile_medisupply.features.config.domain.model.AppConfig
 import com.example.mobile_medisupply.features.home.presentation.CreateVisitScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeScreen
 import com.example.mobile_medisupply.features.home.presentation.HomeViewModel
-import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
 import com.example.mobile_medisupply.features.orders.data.remote.OrderCreatedResult
+import com.example.mobile_medisupply.features.orders.domain.model.OrderSummaryItem
 import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScreen
+import com.example.mobile_medisupply.features.orders.presentation.CreateOrderViewModel
 import com.example.mobile_medisupply.features.orders.presentation.OrderSummaryScreen
-import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
 import com.example.mobile_medisupply.features.orders.presentation.ProductCatalogViewModel
+import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailViewModel
-import com.example.mobile_medisupply.features.orders.presentation.CreateOrderViewModel
+import java.text.NumberFormat
+import java.util.Currency
+import java.util.Locale
 
 @Composable
 fun AppNavHost(
@@ -107,17 +107,14 @@ fun AppNavHost(
         // Pantalla de Home (Visitas)
         composable(Screen.Home.route) {
             if (canViewVisits) {
-                val viewModel : HomeViewModel = hiltViewModel()
+                val viewModel: HomeViewModel = hiltViewModel()
                 HomeScreen(
-                    viewModel = viewModel,
+                        viewModel = viewModel,
                         onScheduleVisitClick = { navController.navigate(Screen.CreateVisit.route) },
                         onVisitClick = { visit ->
                             if (canViewClients) {
                                 navController.navigate(
-                                        Screen.VisitDetail.createRoute(
-                                                visit.clientId,
-                                                visit.id
-                                        )
+                                        Screen.VisitDetail.createRoute(visit.clientId, visit.id)
                                 )
                             }
                         }
@@ -130,7 +127,8 @@ fun AppNavHost(
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
                             modifier =
-                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                    Modifier.fillMaxSize()
+                                            .padding(horizontal = 24.dp)
                                             .wrapContentSize(Alignment.Center)
                     )
                 }
@@ -151,9 +149,7 @@ fun AppNavHost(
                 CreateVisitScreen(
                         clients = ClientRepositoryProvider.repository.getClients(),
                         onBackClick = { navController.navigateUp() },
-                        onSubmit = {
-                            navController.popBackStack()
-                        }
+                        onSubmit = { navController.popBackStack() }
                 )
             } else {
                 Surface {
@@ -163,7 +159,8 @@ fun AppNavHost(
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
                             modifier =
-                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                    Modifier.fillMaxSize()
+                                            .padding(horizontal = 24.dp)
                                             .wrapContentSize(Alignment.Center)
                     )
                 }
@@ -206,6 +203,9 @@ fun AppNavHost(
                     onSubmitOrder = { clientId, items ->
                         createOrderViewModel.submitOrder(clientId, items)
                     },
+                    onSubmitOrderByClient = { items ->
+                        createOrderViewModel.submitOrderByClient(items)
+                    },
                     onDismissError = { createOrderViewModel.clearError() },
                     onProductDetail = { productId ->
                         navController.navigate(Screen.ProductDetail.createRoute(productId))
@@ -226,7 +226,8 @@ fun AppNavHost(
                             style = MaterialTheme.typography.bodyLarge,
                             textAlign = TextAlign.Center,
                             modifier =
-                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                    Modifier.fillMaxSize()
+                                            .padding(horizontal = 24.dp)
                                             .wrapContentSize(Alignment.Center)
                     )
                 }
@@ -238,8 +239,7 @@ fun AppNavHost(
                         Surface {
                             CircularProgressIndicator(
                                     modifier =
-                                            Modifier.fillMaxSize()
-                                                    .wrapContentSize(Alignment.Center)
+                                            Modifier.fillMaxSize().wrapContentSize(Alignment.Center)
                             )
                         }
                     }
@@ -271,7 +271,12 @@ fun AppNavHost(
                                 product = product,
                                 currentQuantity = orderSelections[product.id]?.quantity ?: 0,
                                 onBackClick = { navController.navigateUp() },
-                                onQuantityConfirmed = { quantity, warehouseId, warehouseName, lotId, lotLabel ->
+                                onQuantityConfirmed = {
+                                        quantity,
+                                        warehouseId,
+                                        warehouseName,
+                                        lotId,
+                                        lotLabel ->
                                     if (quantity <= 0) {
                                         orderSelections.remove(product.id)
                                     } else {
@@ -305,7 +310,8 @@ fun AppNavHost(
                     orderId = orderResult?.id ?: "Orden pendiente",
                     status = orderResult?.estado ?: "En progreso",
                     totalAmountFormatted =
-                            if (summaryItems.isEmpty()) "-" else formatCurrency(currencyCode, totalAmount),
+                            if (summaryItems.isEmpty()) "-"
+                            else formatCurrency(currencyCode, totalAmount),
                     items = summaryItems,
                     currencyCode = config?.country?.currencyCode ?: currencyCode,
                     onBackClick = { navController.navigateUp() }
@@ -318,10 +324,10 @@ fun AppNavHost(
                 val viewModel: ClientsViewModel = hiltViewModel()
 
                 ClientsScreen(
-                    viewModel = viewModel,
+                        viewModel = viewModel,
                         onClientSelected = { client ->
                             navController.navigate(Screen.ClientDetail.createRoute(client.id))
-                    }
+                        }
                 )
             } else {
                 Surface {
@@ -331,7 +337,8 @@ fun AppNavHost(
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
                             modifier =
-                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                    Modifier.fillMaxSize()
+                                            .padding(horizontal = 24.dp)
                                             .wrapContentSize(Alignment.Center)
                     )
                 }
@@ -350,7 +357,8 @@ fun AppNavHost(
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
                             modifier =
-                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                    Modifier.fillMaxSize()
+                                            .padding(horizontal = 24.dp)
                                             .wrapContentSize(Alignment.Center)
                     )
                 }
@@ -365,10 +373,7 @@ fun AppNavHost(
                             onVisitSelected = { visit ->
                                 clientId?.let {
                                     navController.navigate(
-                                            Screen.VisitDetail.createRoute(
-                                                    it,
-                                                    visit.id
-                                            )
+                                            Screen.VisitDetail.createRoute(it, visit.id)
                                     )
                                 }
                             }
@@ -380,7 +385,8 @@ fun AppNavHost(
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center,
                                 modifier =
-                                        Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                        Modifier.fillMaxSize()
+                                                .padding(horizontal = 24.dp)
                                                 .wrapContentSize(Alignment.Center)
                         )
                     }
@@ -407,15 +413,14 @@ fun AppNavHost(
                             color = MaterialTheme.colorScheme.error,
                             textAlign = TextAlign.Center,
                             modifier =
-                                    Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                    Modifier.fillMaxSize()
+                                            .padding(horizontal = 24.dp)
                                             .wrapContentSize(Alignment.Center)
                     )
                 }
             } else {
-                val clientId =
-                        backStackEntry.arguments?.getString(Screen.VisitDetail.CLIENT_ID_ARG)
-                val visitId =
-                        backStackEntry.arguments?.getString(Screen.VisitDetail.VISIT_ID_ARG)
+                val clientId = backStackEntry.arguments?.getString(Screen.VisitDetail.CLIENT_ID_ARG)
+                val visitId = backStackEntry.arguments?.getString(Screen.VisitDetail.VISIT_ID_ARG)
                 val viewModel: VisitDetailViewModel = hiltViewModel()
                 if (clientId != null && visitId != null) {
                     VisitDetailScreen(
@@ -431,14 +436,14 @@ fun AppNavHost(
                                 style = MaterialTheme.typography.bodyLarge,
                                 textAlign = TextAlign.Center,
                                 modifier =
-                                        Modifier.fillMaxSize().padding(horizontal = 24.dp)
+                                        Modifier.fillMaxSize()
+                                                .padding(horizontal = 24.dp)
                                                 .wrapContentSize(Alignment.Center)
                         )
                     }
                 }
             }
         }
-
     }
 }
 
