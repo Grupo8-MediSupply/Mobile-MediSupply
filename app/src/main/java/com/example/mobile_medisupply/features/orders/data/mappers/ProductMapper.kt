@@ -101,3 +101,22 @@ private fun resolvePresentation(
 }
 
 fun List<ProductDetailResult>.toDomainList(): List<ProductCatalogItem> = map { it.toDomain() }
+
+fun com.example.mobile_medisupply.features.orders.data.remote.OrderHistoryDto.toDomain(): com.example.mobile_medisupply.features.orders.domain.model.OrderSummary {
+    // Parse created_at date
+    val formatter = DateTimeFormatter.ISO_DATE_TIME
+    val instant = Instant.from(formatter.parse(created_at))
+    val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+    val displayDateFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale("es", "CO"))
+    val formattedDate = localDate.format(displayDateFormatter)
+    
+    return com.example.mobile_medisupply.features.orders.domain.model.OrderSummary(
+        id = id,
+        orderNumber = id.take(8).uppercase(), // Use first 8 chars of ID as order number
+        clientName = "", // Not provided in DTO for client orders
+        status = com.example.mobile_medisupply.features.orders.domain.model.OrderStatus.fromApiValue(estado),
+        createdAt = formattedDate,
+        total = total,
+        formattedTotal = pesoFormatter.format(total)
+    )
+}

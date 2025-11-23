@@ -5,6 +5,7 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ProductApi {
 
@@ -18,6 +19,12 @@ interface ProductApi {
     suspend fun crearPedidoDesdeCliente(
             @Body request: CreateOrderRequest
     ): ApiResponse<OrderCreatedResult>
+
+    @GET("pedidos/cliente")
+    suspend fun obtenerPedidosCliente(
+            @Query("state") state: String? = null,
+            @Query("limit") limit: Int? = null
+    ): ApiResponse<List<OrderHistoryDto>>
 
     @GET("producto/ObtenerProductos") suspend fun obtenerProductos(): ApiResponse<List<ProductDto>>
 
@@ -69,3 +76,12 @@ data class Supplier(val id: String, val nombre: String, val pais: String)
 data class Warehouse(val bodegaId: String, val bodegaNombre: String, val lotes: List<Batch>?)
 
 data class Batch(val loteId: String, val cantidad: Int)
+
+data class OrderHistoryDto(
+        val id: String,
+        val estado: String,
+        val cliente: String,
+        val vendedor: String,
+        val total: Double,
+        val created_at: String
+)

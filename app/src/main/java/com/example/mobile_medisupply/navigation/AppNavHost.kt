@@ -47,6 +47,7 @@ import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScr
 import com.example.mobile_medisupply.features.orders.presentation.CreateOrderViewModel
 import com.example.mobile_medisupply.features.orders.presentation.OrderSummaryScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
+import com.example.mobile_medisupply.features.orders.presentation.OrdersViewModel
 import com.example.mobile_medisupply.features.orders.presentation.ProductCatalogViewModel
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailViewModel
@@ -174,7 +175,26 @@ fun AppNavHost(
 
         // Pantalla de Órdenes
         composable(Screen.Inventory.route) {
-            OrdersScreen(onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) })
+            val userRole = session?.role ?: UserRole.VENDEDOR
+            
+            if (userRole == UserRole.CLIENTE) {
+                // For clients, use ViewModel with real API data
+                val ordersViewModel: OrdersViewModel = hiltViewModel()
+                val ordersState by ordersViewModel.uiState.collectAsState()
+                
+                LaunchedEffect(Unit) {
+                    ordersViewModel.loadClientOrders(state = "enviado", limit = 10)
+                }
+                
+                OrdersScreen(
+                    uiState = ordersState,
+                    onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) },
+                    onRetry = { ordersViewModel.loadClientOrders(state = "enviado", limit = 10) }
+                )
+            } else {
+                // For sellers/admins, use fake data (for now)
+                OrdersScreen(onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) })
+            }
         }
 
         composable(Screen.CreateOrder.route) {
@@ -188,7 +208,10 @@ fun AppNavHost(
                 if (result != null) {
                     lastOrderResult.value = result
                     createOrderViewModel.clearOrderResult()
-                    navController.navigate(Screen.OrderSummary.route)
+                    // Navigate to OrderSummary and clear the back stack to CreateOrder
+                    navController.navigate(Screen.OrderSummary.route) {
+                        popUpTo(Screen.CreateOrder.route) { inclusive = true }
+                    }
                 }
             }
 
@@ -314,7 +337,13 @@ fun AppNavHost(
                             else formatCurrency(currencyCode, totalAmount),
                     items = summaryItems,
                     currencyCode = config?.country?.currencyCode ?: currencyCode,
-                    onBackClick = { navController.navigateUp() }
+                    onBackClick = {
+                        // Navigate to orders list and clear selections
+                        orderSelections.clear()
+                        navController.navigate(Screen.Inventory.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                        }
+                    }
             )
         }
 
