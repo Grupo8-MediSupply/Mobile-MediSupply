@@ -208,7 +208,10 @@ fun AppNavHost(
                 if (result != null) {
                     lastOrderResult.value = result
                     createOrderViewModel.clearOrderResult()
-                    navController.navigate(Screen.OrderSummary.route)
+                    // Navigate to OrderSummary and clear the back stack to CreateOrder
+                    navController.navigate(Screen.OrderSummary.route) {
+                        popUpTo(Screen.CreateOrder.route) { inclusive = true }
+                    }
                 }
             }
 
@@ -334,7 +337,13 @@ fun AppNavHost(
                             else formatCurrency(currencyCode, totalAmount),
                     items = summaryItems,
                     currencyCode = config?.country?.currencyCode ?: currencyCode,
-                    onBackClick = { navController.navigateUp() }
+                    onBackClick = {
+                        // Navigate to orders list and clear selections
+                        orderSelections.clear()
+                        navController.navigate(Screen.Inventory.route) {
+                            popUpTo(Screen.Home.route) { inclusive = false }
+                        }
+                    }
             )
         }
 
