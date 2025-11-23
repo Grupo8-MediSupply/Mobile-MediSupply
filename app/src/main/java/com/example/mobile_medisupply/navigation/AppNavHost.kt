@@ -47,6 +47,7 @@ import com.example.mobile_medisupply.features.orders.presentation.CreateOrderScr
 import com.example.mobile_medisupply.features.orders.presentation.CreateOrderViewModel
 import com.example.mobile_medisupply.features.orders.presentation.OrderSummaryScreen
 import com.example.mobile_medisupply.features.orders.presentation.OrdersScreen
+import com.example.mobile_medisupply.features.orders.presentation.OrdersViewModel
 import com.example.mobile_medisupply.features.orders.presentation.ProductCatalogViewModel
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailScreen
 import com.example.mobile_medisupply.features.orders.presentation.ProductDetailViewModel
@@ -174,7 +175,26 @@ fun AppNavHost(
 
         // Pantalla de Órdenes
         composable(Screen.Inventory.route) {
-            OrdersScreen(onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) })
+            val userRole = session?.role ?: UserRole.VENDEDOR
+            
+            if (userRole == UserRole.CLIENTE) {
+                // For clients, use ViewModel with real API data
+                val ordersViewModel: OrdersViewModel = hiltViewModel()
+                val ordersState by ordersViewModel.uiState.collectAsState()
+                
+                LaunchedEffect(Unit) {
+                    ordersViewModel.loadClientOrders(state = "enviado", limit = 10)
+                }
+                
+                OrdersScreen(
+                    uiState = ordersState,
+                    onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) },
+                    onRetry = { ordersViewModel.loadClientOrders(state = "enviado", limit = 10) }
+                )
+            } else {
+                // For sellers/admins, use fake data (for now)
+                OrdersScreen(onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) })
+            }
         }
 
         composable(Screen.CreateOrder.route) {

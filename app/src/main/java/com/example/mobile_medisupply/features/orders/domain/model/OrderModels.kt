@@ -1,9 +1,21 @@
 package com.example.mobile_medisupply.features.orders.domain.model
 
-enum class OrderStatus(val displayName: String) {
-    PROCESSED("Procesada"),
-    IN_PROGRESS("En proceso"),
-    PENDING("Pendiente")
+enum class OrderStatus(val displayName: String, val apiValue: String) {
+    ENVIADO("Enviado", "ENVIADO"),
+    PROCESANDO("Procesando", "PROCESANDO"),
+    CANCELADO("Cancelado", "CANCELADO"),
+    ENTREGADO("Entregado", "ENTREGADO"),
+    // Legacy statuses for backward compatibility
+    PROCESSED("Procesada", "PROCESSED"),
+    IN_PROGRESS("En proceso", "IN_PROGRESS"),
+    PENDING("Pendiente", "PENDING");
+
+    companion object {
+        fun fromApiValue(value: String): OrderStatus {
+            return values().find { it.apiValue.equals(value, ignoreCase = true) } 
+                ?: PROCESANDO // Default fallback
+        }
+    }
 }
 
 data class OrderSummary(
@@ -11,7 +23,9 @@ data class OrderSummary(
         val orderNumber: String,
         val clientName: String,
         val status: OrderStatus,
-        val createdAt: String
+        val createdAt: String,
+        val total: Double? = null,
+        val formattedTotal: String? = null
 )
 
 data class ProductCatalogItem(

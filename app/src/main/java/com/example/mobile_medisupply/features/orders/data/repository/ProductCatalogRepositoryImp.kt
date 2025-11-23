@@ -94,6 +94,28 @@ class ProductCatalogRepository @Inject constructor(private val api: ProductApi) 
         }
     }
 
+    override suspend fun getOrderHistoryByClient(
+            state: String?,
+            limit: Int?
+    ): Flow<Result<List<com.example.mobile_medisupply.features.orders.domain.model.OrderSummary>>> = flow {
+        try {
+            val response = api.obtenerPedidosCliente(state = state, limit = limit)
+            if (response.success && response.result != null) {
+                emit(Result.success(response.result.map { it.toDomain() }))
+            } else {
+                emit(
+                        Result.failure(
+                                IllegalStateException(
+                                        response.message ?: "Error al obtener historial de pedidos"
+                                )
+                        )
+                )
+            }
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+
     override suspend fun getProductDetail(productId: String): Flow<Result<ProductCatalogItem>> =
             flow {
                 try {

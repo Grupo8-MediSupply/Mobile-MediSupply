@@ -24,6 +24,11 @@ interface ProductCatalogRepositoryImp {
             products: List<ProductItemRequest>
     ): Flow<Result<OrderCreatedResult>>
 
+    suspend fun getOrderHistoryByClient(
+            state: String? = null,
+            limit: Int? = null
+    ): Flow<Result<List<com.example.mobile_medisupply.features.orders.domain.model.OrderSummary>>>
+
     suspend fun getCatalog(): Flow<Result<List<ProductSummary>>>
 
     suspend fun getProductDetail(productId: String): Flow<Result<ProductCatalogItem>>
