@@ -170,7 +170,7 @@ fun CreateOrderScreen(
                                         Modifier.weight(1f)
                                                 .fillMaxWidth()
                                                 .padding(horizontal = 16.dp)
-                                                .padding(bottom = 88.dp),
+                                                .padding(bottom = 8.dp),
                                 verticalArrangement = Arrangement.spacedBy(12.dp)
                         ) {
                                 item {
@@ -238,8 +238,6 @@ fun CreateOrderScreen(
                                                         )
                                                 }
                                 }
-
-                                item { Spacer(modifier = Modifier.height(64.dp)) }
                         }
 
                         OrderFooter(
