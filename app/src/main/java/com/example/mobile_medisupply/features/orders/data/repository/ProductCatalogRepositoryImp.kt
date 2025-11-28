@@ -99,7 +99,7 @@ class ProductCatalogRepository @Inject constructor(private val api: ProductApi) 
             limit: Int?
     ): Flow<Result<List<com.example.mobile_medisupply.features.orders.domain.model.OrderSummary>>> = flow {
         try {
-            val response = api.obtenerPedidosCliente(state = state, limit = limit)
+            val response = api.obtenerPedidosCliente(limit = limit)
             if (response.success && response.result != null) {
                 emit(Result.success(response.result.map { it.toDomain() }))
             } else {

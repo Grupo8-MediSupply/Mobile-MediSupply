@@ -64,6 +64,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.mobile_medisupply.R
 import com.example.mobile_medisupply.features.clients.domain.model.ClientVisitDetail
@@ -145,7 +146,13 @@ fun VisitDetailScreen(
                 val file = pendingVideoFile
                 if (file != null && file.exists()) {
                     // Ahora SI tienes un archivo real guardado
-                    viewModel.uploadVideo(visitId, file)
+                    //viewModel.uploadVideo(visitId, file)
+                    selectedVideo = VisitVideoAttachment(
+                        uri = file.toUri(),
+                        displayName = file.name,
+                        sizeBytes = file.length(),
+                        durationMs = 0,
+                    )
                 } else {
                     scope.launch {
                         snackbarHostState.showSnackbar("No se pudo guardar el video.")
@@ -153,6 +160,17 @@ fun VisitDetailScreen(
                 }
             }
         }
+
+
+    fun handleSave(text: String, video: VisitVideoAttachment?) {
+        scope.launch {
+            if (video != null) {
+                val file = File(video.uri.path!!)
+                viewModel.uploadVideo(visitId, file)
+            }
+            onSaveClick(text, video)
+        }
+    }
 
 
     fun createTempVideoFile(context: Context): Pair<File, Uri>? {
@@ -230,7 +248,9 @@ fun VisitDetailScreen(
                             showVideoOptions = showVideoOptions,
                             onShowVideoOptionsChange = { showVideoOptions = it },
                             onBackClick = onBackClick,
-                            onSaveClick = { text, video -> onSaveClick(text, video) },
+                            onSaveClick = { text, video ->
+                                handleSave(text, video)
+                            },
                             selectedVideo = selectedVideo,
                             onSelectedVideoChange = { selectedVideo = it },
                             onRecordVideo = {
@@ -609,7 +629,7 @@ private fun handleVideoResult(
                     uri = uri,
                     displayName = displayName,
                     sizeBytes = size,
-                    durationMs = duration
+                    durationMs = duration,
             )
     )
 }
