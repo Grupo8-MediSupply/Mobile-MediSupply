@@ -10,6 +10,10 @@ import com.example.mobile_medisupply.features.home.domain.repository.ScheduledVi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import java.io.File
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -43,6 +47,31 @@ class ScheduledVisitRepositoryImp @Inject constructor(
             emit(null)
         }
     }
+
+    override suspend fun uploadVisitVideo(
+        visitaId: String,
+        file: File
+    ): Flow<Boolean> = flow {
+
+        // crea el request body multipart
+        val requestBody = file
+            .asRequestBody("video/mp4".toMediaType())
+
+        val multipart = MultipartBody.Part.createFormData(
+            "video",
+            file.name,
+            requestBody
+        )
+
+        val response = visitApi.subirVideoVisita(visitaId, multipart)
+
+        emit(response.success)
+    }.catch { e ->
+        e.printStackTrace()
+        emit(false)
+    }
+
+
 
 
 }

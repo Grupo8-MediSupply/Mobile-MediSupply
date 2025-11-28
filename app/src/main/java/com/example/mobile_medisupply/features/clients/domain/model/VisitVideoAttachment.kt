@@ -1,12 +1,13 @@
 package com.example.mobile_medisupply.features.clients.domain.model
 
 import android.net.Uri
+import java.io.File
 
 data class VisitVideoAttachment(
         val uri: Uri,
         val displayName: String,
         val sizeBytes: Long,
-        val durationMs: Long
+        val durationMs: Long,
 ) {
     val sizeLabel: String
         get() = "%.1f MB".format(sizeBytes / (1024.0 * 1024.0))
