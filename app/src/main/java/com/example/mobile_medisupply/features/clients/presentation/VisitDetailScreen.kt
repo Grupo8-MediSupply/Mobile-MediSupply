@@ -63,6 +63,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.mobile_medisupply.R
 import com.example.mobile_medisupply.features.clients.domain.model.ClientVisitDetail
@@ -72,6 +73,7 @@ import com.example.mobile_medisupply.ui.theme.MobileMediSupplyTheme
 import com.example.mobile_medisupply.features.home.domain.model.VisitDetail as HomeVisitDetail
 import com.example.mobile_medisupply.features.home.data.remote.Ubicacion
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.Locale
 
 private const val MAX_VIDEO_SIZE_BYTES = 30L * 1024 * 1024 // 30MB
@@ -131,38 +133,82 @@ fun VisitDetailScreen(
                 }
             }
 
+    var pendingVideoFile by remember { mutableStateOf<File?>(null) }
+
+
     val captureLauncher =
-            rememberLauncherForActivityResult(
-                    contract = ActivityResultContracts.StartActivityForResult()
-            ) { result ->
-                if (result.resultCode == Activity.RESULT_OK) {
-                    val uri = extractVideoUri(result)
-                    if (uri != null) {
-                        handleVideoResult(
-                                context = context,
-                                uri = uri,
-                                onValid = { selectedVideo = it },
-                                onError = { message ->
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar(
-                                                message = message,
-                                                duration = SnackbarDuration.Short
-                                        )
-                                    }
-                                }
-                        )
-                    } else {
-                        scope.launch {
-                            snackbarHostState.showSnackbar(
-                                    message = context.getString(
-                                            R.string.visit_detail_video_capture_error
-                                    ),
-                                    duration = SnackbarDuration.Short
-                            )
-                        }
+        rememberLauncherForActivityResult(
+            contract = ActivityResultContracts.StartActivityForResult()
+        ) { result ->
+            if (result.resultCode == Activity.RESULT_OK) {
+
+                val file = pendingVideoFile
+                if (file != null && file.exists()) {
+                    // Ahora SI tienes un archivo real guardado
+                    viewModel.uploadVideo(visitId, file)
+                } else {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("No se pudo guardar el video.")
                     }
                 }
             }
+        }
+
+
+    fun createTempVideoFile(context: Context): Pair<File, Uri>? {
+        return try {
+            val storageDir = File(context.cacheDir, "videos")
+            if (!storageDir.exists()) storageDir.mkdirs()
+
+            val file = File.createTempFile(
+                "video_", ".mp4", storageDir
+            )
+
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.provider",
+                file
+            )
+
+            file to uri
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+
+            val pair = createTempVideoFile(context)
+            if (pair == null) {
+                scope.launch {
+                    snackbarHostState.showSnackbar("No se pudo crear archivo para grabar")
+                }
+                return@rememberLauncherForActivityResult
+            }
+
+            val (file, uri) = pair
+            pendingVideoFile = file
+
+            val intent = Intent(MediaStore.ACTION_VIDEO_CAPTURE).apply {
+                putExtra(MediaStore.EXTRA_DURATION_LIMIT, 60)
+                putExtra(MediaStore.EXTRA_SIZE_LIMIT, MAX_VIDEO_SIZE_BYTES)
+                putExtra(MediaStore.EXTRA_OUTPUT, uri)
+                addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            }
+
+            captureLauncher.launch(intent)
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar("Permiso de cámara necesario.")
+            }
+        }
+    }
 
     Scaffold(
             modifier = modifier.fillMaxSize(),
@@ -193,7 +239,7 @@ fun VisitDetailScreen(
                                             putExtra(MediaStore.EXTRA_DURATION_LIMIT, 60)
                                             putExtra(MediaStore.EXTRA_SIZE_LIMIT, MAX_VIDEO_SIZE_BYTES)
                                         }
-                                captureLauncher.launch(intent)
+                                cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
                             },
                             onPickFromGallery = {
                                 galleryLauncher.launch(
