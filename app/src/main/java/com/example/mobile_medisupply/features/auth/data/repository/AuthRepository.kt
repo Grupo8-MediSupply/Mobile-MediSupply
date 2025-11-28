@@ -35,8 +35,9 @@ constructor(
                                 )
                 val userSession = decodeToken(token)
                 sessionManager.saveSession(userSession)
-                runCatching { configRepository.fetchAndCacheConfig(token) }
-                        .onFailure { Log.w(TAG, "Failed to fetch configuration", it) }
+                runCatching { configRepository.fetchAndCacheConfig(token) }.onFailure {
+                    Log.w(TAG, "Failed to fetch configuration", it)
+                }
                 emit(Result.success(userSession))
             } else {
                 val message =
@@ -66,40 +67,51 @@ constructor(
         }
     }
 
-    suspend fun registrarCliente(request: CrearClienteRequest): Flow<Result<CrearClienteResult>> = flow {
-        try {
-            val response = authApi.registrarCliente(request)
+    suspend fun registrarCliente(request: CrearClienteRequest): Flow<Result<CrearClienteResult>> =
+            flow {
+                try {
+                    val response = authApi.registrarCliente(request)
 
-            if (response.success) {
-                val result = response.result
-                    ?: throw LoginException(
-                        type = LoginErrorType.UNKNOWN,
-                        message = "Respuesta del servidor inválida."
-                    )
-                emit(Result.success(result))
-            } else {
-                val message = response.message?.takeIf { it.isNotBlank() }
-                    ?: "No se pudo registrar el cliente. Verifica los datos ingresados."
-                emit(Result.failure(LoginException(LoginErrorType.INVALID_CREDENTIALS, message)))
+                    if (response.success) {
+                        val result =
+                                response.result
+                                        ?: throw LoginException(
+                                                type = LoginErrorType.UNKNOWN,
+                                                message = "Respuesta del servidor inválida."
+                                        )
+                        emit(Result.success(result))
+                    } else {
+                        val message =
+                                response.message?.takeIf { it.isNotBlank() }
+                                        ?: "No se pudo registrar el cliente. Verifica los datos ingresados."
+                        emit(
+                                Result.failure(
+                                        LoginException(LoginErrorType.INVALID_CREDENTIALS, message)
+                                )
+                        )
+                    }
+                } catch (e: Exception) {
+                    val handledException =
+                            when (e) {
+                                is LoginException -> e
+                                is IOException ->
+                                        LoginException(
+                                                type = LoginErrorType.NETWORK,
+                                                message =
+                                                        "No pudimos conectar con el servidor. Revisa tu conexión.",
+                                                cause = e
+                                        )
+                                else ->
+                                        LoginException(
+                                                type = LoginErrorType.UNKNOWN,
+                                                message =
+                                                        "Ocurrió un error al registrar el cliente.",
+                                                cause = e
+                                        )
+                            }
+                    emit(Result.failure(handledException))
+                }
             }
-        } catch (e: Exception) {
-            val handledException = when (e) {
-                is LoginException -> e
-                is IOException -> LoginException(
-                    type = LoginErrorType.NETWORK,
-                    message = "No pudimos conectar con el servidor. Revisa tu conexión.",
-                    cause = e
-                )
-                else -> LoginException(
-                    type = LoginErrorType.UNKNOWN,
-                    message = "Ocurrió un error al registrar el cliente.",
-                    cause = e
-                )
-            }
-            emit(Result.failure(handledException))
-        }
-    }
-
 
     fun getSession(): UserSession? = sessionManager.getSession()
 
@@ -141,8 +153,17 @@ enum class LoginErrorType {
     UNKNOWN
 }
 
-class LoginException(
-        val type: LoginErrorType,
-        message: String,
-        cause: Throwable? = null
-) : Exception(message, cause)
+class LoginException(val type: LoginErrorType, message: String, cause: Throwable? = null) :
+        Exception(message, cause)
+
+data class Pais(
+        val id: Int,
+        val codigoIso: String,
+        val nombre: String,
+        val moneda: String,
+        val simboloMoneda: String,
+        val zonaHoraria: String,
+        val idiomaOficial: String,
+        val reguladorSanitario: String?,
+        val siglaMoneda: String
+)

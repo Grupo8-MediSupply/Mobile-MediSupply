@@ -11,9 +11,9 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
-import okhttp3.Interceptor
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -33,32 +33,37 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(sessionManager: SessionManager): Interceptor =
-        Interceptor { chain ->
-            val original = chain.request()
-            val url = original.url.toString()
+    fun provideAuthInterceptor(sessionManager: SessionManager): Interceptor = Interceptor { chain ->
+        val original = chain.request()
+        val url = original.url.toString()
 
-            // No incluir el token en login o registro
-            if (url.contains("login") || url.contains("registrar")) {
-                return@Interceptor chain.proceed(original)
-            }
-
-            val token = sessionManager.getSession()?.token
-            val newRequest = original.newBuilder().apply {
-                if (!token.isNullOrBlank()) {
-                    addHeader("Authorization", "Bearer $token")
-                }
-            }.build()
-
-            chain.proceed(newRequest)
+        // No incluir el token en login o registro de clientes (endpoints públicos)
+        if (url.contains("login") || url.contains("clientes")) {
+            return@Interceptor chain.proceed(original)
         }
+
+        val token = sessionManager.getSession()?.token
+        val newRequest =
+                original.newBuilder()
+                        .apply {
+                            if (!token.isNullOrBlank()) {
+                                addHeader("Authorization", "Bearer $token")
+                            }
+                        }
+                        .build()
+
+        chain.proceed(newRequest)
+    }
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(loggingInterceptor: HttpLoggingInterceptor,authInterceptor: Interceptor): OkHttpClient {
+    fun provideOkHttpClient(
+            loggingInterceptor: HttpLoggingInterceptor,
+            authInterceptor: Interceptor
+    ): OkHttpClient {
         return OkHttpClient.Builder()
                 .addInterceptor(loggingInterceptor)
-                .addInterceptor (authInterceptor )
+                .addInterceptor(authInterceptor)
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .build()
@@ -88,19 +93,16 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideVisitApi(retrofit: Retrofit): VisitApi =
-        retrofit.create(VisitApi::class.java)
+    fun provideVisitApi(retrofit: Retrofit): VisitApi = retrofit.create(VisitApi::class.java)
 
     @Provides
     @Singleton
-    fun provideProductApi(retrofit: Retrofit): ProductApi =
-        retrofit.create(ProductApi::class.java)
+    fun provideProductApi(retrofit: Retrofit): ProductApi = retrofit.create(ProductApi::class.java)
 }
 
-
 data class ApiResponse<T>(
-    val success: Boolean,
-    val result: T? = null,
-    val message: String? = null,
-    val timestamp: String? = null
+        val success: Boolean,
+        val result: T? = null,
+        val message: String? = null,
+        val timestamp: String? = null
 )

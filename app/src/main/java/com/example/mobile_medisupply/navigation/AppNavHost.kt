@@ -90,15 +90,10 @@ fun AppNavHost(
         // Pantalla de Registro
         composable(Screen.Register.route) {
             RegisterScreen(
-                    onRegisterClick = {
-                            companyName,
-                            taxId,
-                            institutionType,
-                            personInCharge,
-                            email,
-                            password ->
-                        navController.navigate(Screen.Home.route) {
-                            popUpTo(Screen.Login.route) { inclusive = true }
+                    onRegisterSuccess = {
+                        // Navigate back to login after successful registration
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Register.route) { inclusive = true }
                         }
                     },
                     onLoginClick = { navController.navigateUp() }
@@ -176,24 +171,28 @@ fun AppNavHost(
         // Pantalla de Órdenes
         composable(Screen.Inventory.route) {
             val userRole = session?.role ?: UserRole.VENDEDOR
-            
+
             if (userRole == UserRole.CLIENTE) {
                 // For clients, use ViewModel with real API data
                 val ordersViewModel: OrdersViewModel = hiltViewModel()
                 val ordersState by ordersViewModel.uiState.collectAsState()
-                
+
                 LaunchedEffect(Unit) {
                     ordersViewModel.loadClientOrders(state = "enviado", limit = 10)
                 }
-                
+
                 OrdersScreen(
-                    uiState = ordersState,
-                    onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) },
-                    onRetry = { ordersViewModel.loadClientOrders(state = "enviado", limit = 10) }
+                        uiState = ordersState,
+                        onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) },
+                        onRetry = {
+                            ordersViewModel.loadClientOrders(state = "enviado", limit = 10)
+                        }
                 )
             } else {
                 // For sellers/admins, use fake data (for now)
-                OrdersScreen(onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) })
+                OrdersScreen(
+                        onCreateOrderClick = { navController.navigate(Screen.CreateOrder.route) }
+                )
             }
         }
 
